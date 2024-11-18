@@ -1,10 +1,18 @@
-#include "Binding.hpp"
+//#include "../inc/Binding.hpp"
+#include "../inc/irc.hpp"
+
 Binding::Binding(int domain, int service, int protocol, int port, u_long interface) : Socket(domain, service, protocol, port, interface)
 {
-    setConnection(bindOrConnect(getSock(), getAddress()));
-    testConnection(getConnection());
+    ConnectToNetwork(getSock(), getAddress());
+    testConnection(binding);
 }
-int Binding::bindOrConnect(int sock, struct sockaddr_in address)
+void Binding::ConnectToNetwork(int sock, struct sockaddr_in address)
 {
-    return bind(sock, (struct sockaddr *)&address, sizeof(address));
+    binding = bind(sock, (struct sockaddr *)&address, sizeof(address));
+    return ;
+}
+
+int Binding::getBinding()
+{
+    return binding;
 }
