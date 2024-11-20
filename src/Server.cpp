@@ -1,22 +1,21 @@
 #include "../inc/irc.hpp"
 
-#define RED     "\033[31m"
+#define RESET   "\033[0m"
+#define CYAN    "\033[36m"
 #define GREEN   "\033[32m"
 #define YELLOW  "\033[33m"
-#define BLUE    "\033[34m"
-#define MAGENTA "\033[35m"
-#define CYAN    "\033[36m"
-#define RESET   "\033[0m"
+#define RED     "\033[31m"
 
 Server::Server(int port, std::string password) {
     _port = port;
     _name = "Lit Server";
+    isExit = false;
     _password = password;
     init();
 }
 
 Server::~Server() {
-    std::cout << RED << "[SERVER] Shutting down..." << RESET << std::endl;
+    std::cout << YELLOW << "Shutting down the server. Closing file descriptor: " << _server.fd << RESET << std::endl;
     close(_server.fd);
 }
 
@@ -34,32 +33,33 @@ Server & Server::operator=(Server const & src) {
 }
 
 void Server::init() {
-    std::cout << BLUE << "[SERVER] Initializing server on port " << _port << "..." << RESET << std::endl;
-    
+    std::cout << CYAN << "Initializing server on port " << _port << "..." << RESET << std::endl;
+
     _server.fd = socket(AF_INET, SOCK_STREAM, 0);
     if (_server.fd < 0)
-        throw std::runtime_error(RED "Failed to create socket descriptor" RESET);
-    
+        throw std::runtime_error(RED "Failed to create a socket. Aborting." RESET);
+
     int setting = fcntl(_server.fd, F_GETFL, 0);
     fcntl(_server.fd, F_SETFL, setting | O_NONBLOCK);
-    std::cout << GREEN << "[SERVER] Socket created successfully" << RESET << std::endl;
 
     _server.addr.sin_family = AF_INET;
+
+    if (_port < 1500)
+        throw std::runtime_error(RED "Invalid port number: must be greater than 1500." RESET);
+    
     _server.addr.sin_port = htons(_port);
     _server.addr.sin_addr.s_addr = htonl(INADDR_ANY);
 
-    std::cout << BLUE << "[SERVER] Binding to port " << _port << "..." << RESET << std::endl;
+    std::cout << CYAN << "Binding server socket to port " << _port << "..." << RESET << std::endl;
     if (bind(_server.fd, (struct sockaddr *) &_server.addr, sizeof(_server.addr)) < 0)
-        throw std::runtime_error(RED "Failed to bind socket to port" RESET);
-    std::cout << GREEN << "[SERVER] Binding successful" << RESET << std::endl;
+        throw std::runtime_error(RED "Failed to bind the server socket." RESET);
 
-    std::cout << BLUE << "[SERVER] Starting to listen for connections..." << RESET << std::endl;
-    if (listen(_server.fd, 1) < 0)
-        throw std::runtime_error(RED "Failed to listen on socket" RESET);
-    std::cout << GREEN << "[SERVER] Listening successfully" << RESET << std::endl;
+    std::cout << CYAN << "Setting up the server to listen for incoming connections..." << RESET << std::endl;
+    if (listen(_server.fd, SOMAXCONN) < 0)
+        throw std::runtime_error(RED "Failed to set the server to listening mode." RESET);
 
     _pollfds = new std::vector<pollfd>(maxClients + 1);
-    std::cout << GREEN << "[SERVER] Server initialized successfully" << RESET << std::endl;
+    std::cout << GREEN << "Server initialization complete. Ready to accept connections." << RESET << std::endl;
 }
 
 void Server::socket_polling() {
@@ -67,7 +67,9 @@ void Server::socket_polling() {
 
     int num_ready = poll(connectionFds.data(), _num_clients + 1, -1);
     if (num_ready < 0)
-        throw std::runtime_error(RED "Polling operation failed" RESET);
+        throw std::runtime_error(RED "Error during poll. Failed to monitor file descriptors." RESET);
+        std::cout << connectionFds[_num_clients + 1].events << std::endl;
+        std::cout << connectionFds[_num_clients + 1].revents << std::endl;        
 }
 
 void Server::connect() {
@@ -79,53 +81,47 @@ void Server::connect() {
 
     _client.fd = accept(_server.fd, (struct sockaddr *) &_client.addr, &size);
     if (_client.fd < 0)
-        throw std::runtime_error(RED "Failed to accept new connection" RESET);
+        throw std::runtime_error(RED "Error accepting a new client connection." RESET);
 
     int setting = fcntl(_client.fd, F_GETFL, 0);
     fcntl(_client.fd, F_SETFL, setting | O_NONBLOCK);
 
     if (_num_clients == maxClients)
-        throw std::runtime_error(RED "Server has reached maximum client capacity" RESET);
-
-    char buffer[1024];
-    ssize_t receive = recv(_client.fd, buffer, 1024, 0);
-    if (receive < 0) {
-        throw std::runtime_error(RED "Failed to receive client data" RESET);
-    }
-
-    std::cout << CYAN << "[CLIENT] New connection attempt from " 
-              << inet_ntoa(_client.addr.sin_addr) << ":" 
-              << ntohs(_client.addr.sin_port) << RESET << std::endl;
-
-    std::istringstream iss(buffer);
-    std::string line;
-    while (std::getline(iss, line)) {
-        if (line.compare(0, 5, "PASS ") == 0) {
-            std::string password = line.substr(5, line.size() - 6);
-            if (password.compare(_password) != 0) {
-                std::cout << RED << "[AUTH] Failed authentication attempt from "
-                         << inet_ntoa(_client.addr.sin_addr) << RESET << std::endl;
-                throw std::runtime_error(RED "Invalid password provided" RESET);
-                isExit = true;
-                break;
-            }
-            std::cout << GREEN << "[AUTH] Client authenticated successfully" << RESET << std::endl;
-        }
-    }
+        throw std::runtime_error(RED "Maximum client limit reached. Unable to accept more clients." RESET);
 
     connectionFds[_num_clients + 1].fd = _client.fd;
     connectionFds[_num_clients + 1].events = POLLIN | POLLOUT;
 
     _num_clients++;
-    std::cout << GREEN << "[SERVER] New client connected. Total clients: " 
-              << _num_clients << RESET << std::endl;
+    std::cout << GREEN << "New client connected. Total clients: " << _num_clients << RESET << std::endl;
 }
 
 void Server::read_client() {
+    char buffer[4096];
+    memset(buffer, 0, sizeof(buffer));
+    int bytes = 0;
     std::vector<pollfd> &connectionFds = *_pollfds;
+
     for (int i = 1; i < _num_clients + 1; i++) {
-        if (connectionFds[i].revents & POLLIN) {
-            std::cout << MAGENTA << "[CLIENT " << i << "] Reading incoming message..." << RESET << std::endl;
+        if (connectionFds[i].fd != -1 && connectionFds[i].revents & POLLIN) {
+            std::cout << CYAN << "Reading data from client (FD: " << connectionFds[i].fd << ")..." << RESET << std::endl;
+            bytes = recv(connectionFds[i].fd, buffer, sizeof(buffer), 0);
+
+            if (bytes == -1) {
+                if (errno == EWOULDBLOCK || errno == EAGAIN) {
+                    continue;
+                } else {
+                    throw std::runtime_error(RED "Error reading from client socket." RESET);
+                }
+            }
+            if (bytes == 0)
+                throw std::runtime_error(RED "Client disconnected unexpectedly (FD: " + std::to_string(connectionFds[i].fd) + ")." RESET);
+
+            std::istringstream iss(buffer);
+            std::string message;
+            while (std::getline(iss, message)) {
+                std::cout << GREEN << "Client message: " << message << RESET << std::endl;
+            }
         }
     }
 }
@@ -137,18 +133,16 @@ void Server::launchServer() {
 
     _num_clients = 0;
 
-    std::cout << YELLOW << "\n=== " << _name << " Starting ===" << RESET << std::endl;
-    std::cout << BLUE << "[SERVER] Listening on port " << _port << RESET << std::endl;
-    
-    while (isExit == false) {
+    std::cout << CYAN << "Starting server main loop..." << RESET << std::endl;
+
+    while (!isExit) {
         try {
             socket_polling();
             connect();
-            if (!isExit)
-                read_client();
-        }
-        catch (std::exception &e) {
-            std::cerr << RED << "[ERROR] " << e.what() << RESET << std::endl;
+            std::cout << "next : reading" << std::endl;
+            read_client();
+        } catch (std::exception &e) {
+            std::cerr << RED << "Critical Error: " << e.what() << RESET << std::endl;
             exit(EXIT_FAILURE);
         }
     }
