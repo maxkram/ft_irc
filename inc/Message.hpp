@@ -1,4 +1,6 @@
+#pragma once
 #include "irc.hpp"
+#include <vector>
 
 class Message {
     public:
@@ -7,10 +9,12 @@ class Message {
         ~Message();
         Message(Message const & src);
         Message & operator=(Message const & src);
-        static void execMessage(std::string str);
+        void splitMessage(int fd);
+        void parseMessage();
+        void pass();
     private:
+        std::string _fullStr;
         std::string _prefix;
         std::string _command;
         std::string _params;
-        std::string _fullStr;
 };

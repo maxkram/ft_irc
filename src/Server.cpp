@@ -92,69 +92,38 @@ void Server::read_client()
     {
         if (connectionFds[i].fd != -1 && connectionFds[i].revents & POLLIN)
         {
-            static std::string completeMessage;
-            memset(&completeMessage, '\0', sizeof(completeMessage));
-            std::cout << "Reading... here" << std::endl;
-            while (!bufferEndMessage(completeMessage))
+            std::cout << "Reading..." << std::endl;
+            char buf[BUFFER_SIZE];
+            memset(buf, 0, sizeof(buf));
+            int bytes = recv(connectionFds[i].fd, buf, sizeof(buf), 0);
+            if (bytes == -1)
             {
-
-                char buf[10];
-                memset(buf, 0, sizeof(buf));
-                int bytes = recv(connectionFds[i].fd, buf, sizeof(buf), 0);
-                if (bytes > 0) 
-                    completeMessage += std::string(buf, bytes);
-                else if (bytes == -1)
-                {
-                    if (errno == EWOULDBLOCK || errno == EAGAIN) {
-                        throw std::runtime_error("Error nothing to read anymore");
-                    }
-                    else
-                        throw std::runtime_error("Error reading inside loop");
-                }
-                else if (bytes == 0)
-                    throw std::runtime_error("Error in the reading, bytes == 0");
-                }
-                Message::execMessage(completeMessage);
-                std::cout << "next client connection \n" << std::endl;
+                if (errno == EWOULDBLOCK || errno == EAGAIN)
+                    continue;
+                else
+                    throw std::runtime_error("Error reading inside loop");
+            }
+            else if (bytes == 0) {
+                throw std::runtime_error("Error in the reading, bytes == 0");
+            }
+            splitBuf(buf, connectionFds[i].fd);
         }
     }
 }
 
-int    Server::bufferEndMessage(std::string completeMessage)
+void Server::splitBuf(std::string buf, int fd)
 {
-    size_t found = completeMessage.find("test");
-    if (found != std::string::npos)
-        std::cout << "found " << std::endl;
-    return (found != std::string::npos) ? 1 : 0;
-}
+    size_t start = 0;
+    size_t end = buf.find("\r\n");
 
-std::string Server::readMessage(std::string completeMessage, const pollfd &connectionFds)
-{
-    std::cout << "Entering readMessage" << std::endl;
-    char buf[10];
-    memset(buf, 0, sizeof(buf));
-    int bytes = recv(connectionFds.fd, buf, sizeof(buf), 0);
-    if (bytes > 0) 
+    while (end != std::string::npos)
     {
-        completeMessage += std::string(buf, bytes);
-        std::cout << "Received: " << buf << std::endl;
-        std::cout << "Message is now : " << completeMessage << std::endl;
-        return (completeMessage);
+        Message message(buf.substr(start, end - start));
+        start = end + 2;
+        end = buf.find("\r\n", start);
+        message.splitMessage(fd);
     }
-    else if (bytes == -1)
-    {
-        if (errno == EWOULDBLOCK || errno == EAGAIN) {
-            throw std::runtime_error("Error nothing to read anymore");
-        }
-        else
-            throw std::runtime_error("Error reading inside loop");
-    }
-    else if (bytes == 0)
-        throw std::runtime_error("Error in the reading, bytes == 0");
-    std::cout << "return";
-    return (completeMessage);
 }
-
 void Server::launchServer() {
     std::vector<pollfd> &connectionFds = *_pollfds;
     connectionFds[0].fd = _server.fd;
@@ -167,7 +136,7 @@ void Server::launchServer() {
 		try {
             socket_polling();
             connect();
-            // send_message();
+          if (connectionFds[1].revents & POLLIN)
             read_client();
         }
         catch (std::exception &e) {
@@ -177,10 +146,19 @@ void Server::launchServer() {
     }
 }
 
-void Server::execute(std::string &message) {
-    size_t pos = message.find("\r\n");
-    if (pos == std::string::npos)
-        return;
-    std::string command = message.substr(0, pos);
-    message.erase(0, pos + 2);
+void Server::send_message() {
+    std::vector<pollfd> &connectionFds = *_pollfds;
+
+    for (std::vector<s_message>::iterator it = _messages.begin(); it != _messages.end(); it++) {
+        const s_message &message = *it;
+        int index = -1;
+        for (int i = 1; i <= _num_clients; i++) {
+            if (connectionFds[i].fd == message.fd) {
+                index = i;
+                break;
+            }
+        }
+        if (index == -1)
+            throw std::runtime_error("Error sending message");
+    }
 }
