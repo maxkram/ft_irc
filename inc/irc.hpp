@@ -20,6 +20,7 @@
 #include <sstream>
 
 #include "Server.hpp"
-#include "Message.hpp"
+#include "User.hpp"
+#include "replies.hpp"
 
 #define BUFFER_SIZE 512

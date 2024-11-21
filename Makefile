@@ -1,20 +1,25 @@
+# Source
+
 SRC =	src/main.cpp \
 		src/Server.cpp \
-		src/Message.cpp \
-		
+		src/User.cpp
+
 HEADERS =	inc/irc.hpp \
 			inc/Server.hpp \
-			inc/Message.hpp
+			inc/User.hpp
 
 OBJS =	$(SRC:.cpp=.o)
 
 CC = 	c++
 
-FLAGS =	-Wall -Wextra -Werror -std=c++98
+FLAGS =	
 
 NAME =	ircserv
 
 RM =	rm -f
+
+GREEN =	\e[92;5;118m
+RED = \e[91;5;118m
 
 %.o: %.cpp
 	@$(CC) $(FLAGS) -c $< -o $@
@@ -23,15 +28,15 @@ all : $(NAME)
 
 $(NAME) : $(OBJS) $(HEADERS)
 	@$(CC) $(FLAGS) $(OBJS) -o $(NAME)
-	@printf "Compiling done\n"
+	@printf "$(GREEN)Compiling done\n"
 
 clean:
 	@$(RM) $(OBJS)
-	@printf "Remove .o files\n"
+	@printf "$(RED)Remove .o files\n"
 
 fclean: clean
 	@$(RM) $(NAME)
-	@printf "Remove executable\n"
+	@printf "$(RED)Remove executable\n"
 
 re: fclean all
 
