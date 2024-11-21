@@ -20,3 +20,4 @@
 #include <sstream>
 
 #include "Server.hpp"
+#include "Message.hpp"

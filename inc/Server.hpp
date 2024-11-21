@@ -43,5 +43,6 @@ class Server {
         pollfd connectionFds[SOMAXCONN];
 
         const static int maxClients = SOMAXCONN;
-
+        int    bufferEndMessage(std::string completeMessage);
+        std::string readMessage(std::string completeMessage, const pollfd &connectionFds);
 };

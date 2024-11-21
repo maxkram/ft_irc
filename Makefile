@@ -1,8 +1,10 @@
 SRC =	src/main.cpp \
-		src/Server.cpp
+		src/Server.cpp \
+		src/Message.cpp \
 		
 HEADERS =	inc/irc.hpp \
-			inc/Server.hpp
+			inc/Server.hpp \
+			inc/Message.hpp
 
 OBJS =	$(SRC:.cpp=.o)
 
