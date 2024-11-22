@@ -130,7 +130,6 @@ void User::passwordCheck(Server &server) {
 
 bool User::command_nick(Server &server, s_message &message) {
     std::cout << "command_nick function checked" << std::endl;
-
     std::string new_nick = message._params;
     std::string old = get_nick();
         if (new_nick.empty()) {
@@ -191,19 +190,15 @@ void User::command_ping(Server &server, s_message &message) {
 
 void User::command_join(Server &server, s_message &message) {
     std::cout << "command_join function checked" << std::endl;
-    for (std::vector<Channel>::iterator it = server.get_channels().begin(); it != server.get_channels().end(); it++) {
-        if (it->get_name() == message._params) {
-            it->add_user(*this);
-            set_channel_atm(&(*it));
-            send(_fd, JOIN(this->get_nick(), this->get_name(), _hostName, it->get_name()).c_str(),
-                 JOIN(this->get_nick(), this->get_name(), _hostName, it->get_name()).size(), 0);
-        } else {
-            Channel *channel = new Channel(message._params, *this);
-            server.get_channels().push_back(*channel);
-            set_channel_atm(channel);
-            send(_fd, JOIN(this->get_nick(), this->get_name(), _hostName, channel->get_name()).c_str(),
-                 JOIN(this->get_nick(), this->get_name(), _hostName, channel->get_name()).size(), 0);
-        }
-    }
+            Channel *channel = new Channel(message._params);
+            std::cout << "Users before adding: " << channel->get_users().size() << std::endl;
+            channel->add_user(*this);
+            std::cout << "Users after adding: " << channel->get_users().size() << std::endl;
+
+std::cout << "Users in channel " << channel->get_name() << ": ";
+for (const auto &user : channel->get_users()) {
+    std::cout << user.get_name() << " ";
+}
+std::cout << std::endl;
     server.print_channels();
 }
