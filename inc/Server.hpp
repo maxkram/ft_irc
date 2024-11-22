@@ -7,6 +7,7 @@ struct s_socket {
 };
 
 class User;
+class Channel;
 
 class Server {
     public:
@@ -15,17 +16,20 @@ class Server {
         Server(Server const & src);
         Server & operator=(Server const & src);
 
-        std::vector<User> &get_clients();
+        std::vector<Channel> &get_channels();
+        std::string get_password() const;
 
         void launchServer();
-        std::string get_password() const;
         void set_exit_status(bool status);
+
+        void print_channels();
 
     private:
         int _port;
         int _num_clients;
         bool isExit;
 
+        std::vector<Channel> _channels;
         std::vector<User> _clients;
 
         s_socket _server;

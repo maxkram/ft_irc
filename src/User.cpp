@@ -39,6 +39,18 @@ std::string User::get_pw() const {
     return _pw;
 }
 
+void User::set_channel_atm(Channel* channel) {
+    _channel_atm = channel;
+}
+
+Channel* User::get_channel_atm() const {
+    return _channel_atm;
+}
+
+void User::set_nick(std::string nick) {
+    _nick = nick;
+}
+
 
 void User::splitMessage(int fd, Server &server, std::string buf) {
     std::stringstream ss(buf);
@@ -64,10 +76,10 @@ void User::splitMessage(int fd, Server &server, std::string buf) {
 }
 
 void User::parseMessage(Server &server) {
-    std::string type[] = {"PASS", "NICK", "USER", "/JOIN", "/KICK", "/INVITE", "/CHANNEL", "CAP", "/PASS", "/NICK", "/USER", "PING", "/INVALID" };
+    std::string type[] = {"PASS", "NICK", "USER", "JOIN", "KICK", "INVITE", "CHANNEL", "CAP", "PING", "/INVALID" };
     int count = 0;
     std::cout << "Command : " << _message._command << std::endl;
-    for (int i = 0; i < 12; i++){
+    for (int i = 0; i < 9; i++){
         if (_message._command.compare(type[i]) != 0)
             count++;
         else
@@ -85,6 +97,7 @@ void User::parseMessage(Server &server) {
             command_user(server, this->_message);
             break;
         case 3:
+            command_join(server, this->_message);
             break;
         case 4:
             break;
@@ -95,14 +108,9 @@ void User::parseMessage(Server &server) {
         case 7:
             break;
         case 8:
+            command_ping(server, this->_message);
             break;
         case 9:
-            break;
-        case 10:
-            break;
-        case 11:
-            command_ping(server, this->_message);
-        case 13:
             std::cout << "Error: invalid command" << std::endl;
             break;
     }
@@ -122,15 +130,23 @@ void User::passwordCheck(Server &server) {
 
 bool User::command_nick(Server &server, s_message &message) {
     std::cout << "command_nick function checked" << std::endl;
+
     std::string new_nick = message._params;
-    for (std::vector<User>::iterator it = server.get_clients().begin(); it != server.get_clients().end(); it++) {
-        if (it->get_nick().compare(new_nick) == 0) {
-            std::cout << "Error: nickname already taken" << std::endl;
+    std::string old = get_nick();
+        if (new_nick.empty()) {
+            send(_fd, ERR_NONICKNAMEGIVEN(message._command).c_str(), ERR_NONICKNAMEGIVEN(message._command).size(), 0);
             return false;
         }
-    }
-    _nick = new_nick;
-    send(_fd, NICK(_nick, new_nick).c_str(), NICK(_nick, new_nick).size(), 0);
+        std::vector <User> clients = server.get_clients();
+        for (std::vector<User>::iterator it = clients.begin(); it != clients.end(); it++) {
+            if (it->get_nick().compare(new_nick) == 0) {
+                send(_fd, ERR_NICKNAMEINUSE(message._command, new_nick).c_str(),
+                     ERR_NICKNAMEINUSE(message._command, new_nick).size(), 0);
+                return false;
+            }
+        }
+    set_nick(new_nick);
+    send(_fd, NICK(old, new_nick).c_str(), NICK(old, new_nick).size(), 0);
     return true;
 }
 
@@ -171,4 +187,23 @@ void User::command_ping(Server &server, s_message &message) {
     }
     else
         send(_fd, PONG(_message._params).c_str(), PONG(_message._params).size(), 0);
+}
+
+void User::command_join(Server &server, s_message &message) {
+    std::cout << "command_join function checked" << std::endl;
+    for (std::vector<Channel>::iterator it = server.get_channels().begin(); it != server.get_channels().end(); it++) {
+        if (it->get_name() == message._params) {
+            it->add_user(*this);
+            set_channel_atm(&(*it));
+            send(_fd, JOIN(this->get_nick(), this->get_name(), _hostName, it->get_name()).c_str(),
+                 JOIN(this->get_nick(), this->get_name(), _hostName, it->get_name()).size(), 0);
+        } else {
+            Channel *channel = new Channel(message._params, *this);
+            server.get_channels().push_back(*channel);
+            set_channel_atm(channel);
+            send(_fd, JOIN(this->get_nick(), this->get_name(), _hostName, channel->get_name()).c_str(),
+                 JOIN(this->get_nick(), this->get_name(), _hostName, channel->get_name()).size(), 0);
+        }
+    }
+    server.print_channels();
 }
