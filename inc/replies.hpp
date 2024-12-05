@@ -35,11 +35,13 @@
 
 # define PART(nick, user, host, chan) (":" + nick + "!" + user + "@" + host + " PART " + chan + "\r\n")
 
+#define PART_REASON(nick, user, host, chan, reason) (":" + nick + "!" + user + "@" + host + " PART " + chan + " :" + reason + "\r\n")
+
 # define ERR_USERNOTINCHANNEL(nick, chan) ("441 " + nick + " " + chan + " :They aren’t on that channel\r\n")
 
 # define RPL_CHANNELMODEIS(server, nick, channel, mode) (":" + server + " 324 " + nick + " " + channel + " " + mode + "\r\n")
 
-# define ERR_UMODEUNKNOWNFLAG(nick) (":localhost 501 " + nick + " :Unknown MODE flag\r\n")
+#define  ERR_UNKNOWNMODE(servername, nick, mode) (":" + servername + " 472 " + nick + " " + mode + " :is unknown mode char to me\r\n")
 
 # define ERR_ERRONEUSNICKNAME(nick) ("432 " + nick + " :Erroneous nickname\r\n")
 
@@ -54,3 +56,9 @@
 # define ERR_USERONCHANNEL(nick, invitenick, chan) ("443 " + nick + " " + invitenick + " " + chan + ":is already on channel\r\n")
 
 # define ERR_INVITEONLYCHAN(nick, chan) ("473 " + nick + " " + chan + " :Cannot join channel (+i)\r\n")
+
+# define QUIT(nick, user, host) (nick + "!" + user + "@" + host  + " QUIT\r\n")
+
+# define QUIT_REASON(nick, user, host, msg) (nick + "!" + user + "@" + host  + " QUIT :" + msg + "\r\n")
+
+# define ERR_BADCHANNELKEY(nick, chan) ("475 " + nick + " " + chan + " :Cannot join channel (+k)\r\n")

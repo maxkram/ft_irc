@@ -19,7 +19,7 @@ class Server {
         std::vector<User*> &get_clients();
         std::vector<Channel *> &get_channels();
         std::string get_password() const;
-
+        void decrease_num_clients(int i);
         void launchServer();
 
         void set_exit_status(bool status);

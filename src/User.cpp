@@ -37,7 +37,6 @@ User &User::operator=(User const &src) {
     if (this != &src) {
         _fd = src._fd;
         id = src.id;
-
     }
     return *this;
 }
@@ -139,7 +138,7 @@ void User::splitMessage(int fd, Server &server, std::string buf) {
 }
 
 void User::parseMessage(Server &server) {
-    std::string type[] = {"PASS", "NICK", "USER", "JOIN", "KICK", "INVITE", "CAP", "PING", "MODE", "TOPIC", "PRIVMSG", "PART", "/INVALID"};
+    std::string type[] = {"PASS", "NICK", "USER", "JOIN", "KICK", "INVITE", "CAP", "PING", "MODE", "TOPIC", "PRIVMSG", "PART", "QUIT", "/INVALID"};
     int count = 0;
     size_t arraySize = sizeof(type) / sizeof(type[0]);
     std::cout << "Command : " << _message._command << std::endl;
@@ -186,7 +185,10 @@ void User::parseMessage(Server &server) {
             command_part(server, this->_message);
             break;
         case 12:
-            std::cout << "Error: invalid command" << std::endl;// check if correct. maybe to put the help ? 
+            command_quit(server, this->_message);
+            break;
+        case 13:
+            std::cout << "Error: invalid command" << std::endl;
             break;
     }
 }
@@ -210,7 +212,7 @@ void User::command_nick(Server &server, s_message &message) {
     if (_nick.empty() && (message._params.find(' ') != std::string::npos || message._params.size() > 9))
         new_nick = new_nick.substr(0, 9);
     if (message._params.find(' ') != std::string::npos || message._params.size() > 9) {
-        send(_fd, ERR_ERRONEUSNICKNAME(_nick).c_str(), ERR_ERRONEUSNICKNAME(_nick).size(), 0);
+        send(_fd, ERR_ERRONEUSNICKNAME(new_nick).c_str(), ERR_ERRONEUSNICKNAME(new_nick).size(), 0);
         return ;
     }
     std::string old = get_nick();
@@ -221,16 +223,19 @@ void User::command_nick(Server &server, s_message &message) {
     std::vector <User *> clients = server.get_clients();
     for (std::vector<User *>::iterator it = clients.begin(); it != clients.end(); it++) {
         if ((*it)->get_nick().compare(new_nick) == 0) {
-            send(_fd, ERR_NICKNAMEISUSE(new_nick).c_str(),ERR_NICKNAMEISUSE(new_nick).size(), 0);
-            new_nick = new_nick.substr(0, new_nick.size() - 1);
+            if (i != 0)
+                new_nick = new_nick.substr(0, new_nick.size() - 1);
             new_nick += std::to_string(i);
             i++;
             set_nick(new_nick);
             send(_fd, NICK(old, new_nick).c_str(), NICK(old, new_nick).size(), 0);
             return ;
+            break;
         }
     }
     std::string newNickOp = "@" + new_nick;
+    if (!_nick.empty())
+        send(_fd, NICK(old, new_nick).c_str(), NICK(old, new_nick).size(), 0);
     set_nick(new_nick);
     set_nickOp(newNickOp);
     send(_fd, NICK(old, new_nick).c_str(), NICK(old, new_nick).size(), 0);
@@ -269,6 +274,7 @@ void User::command_user(Server &server, s_message &message) {
         send(_fd, ERR_NEEDMOREPARAMS(message._command).c_str(), ERR_NEEDMOREPARAMS(message._command).size() , 0);
         return ;
     }
+    std::cout << _nick << std::endl;
     send(_fd, RPL_WELCOME(_nick, _name, _hostName).c_str(), RPL_WELCOME(_nick, _name, _hostName).size(), 0);
     return ;
 }
@@ -286,20 +292,40 @@ void User::command_ping(Server &server, s_message &message) {
 void User::command_join(Server &server, s_message &message) {
     std::cout << "command_join function checked" << std::endl;
     int i = 0;
+    std::stringstream ss(message._params);
+    std::string channelName;
+    std::string password;
+    std::string word;
+    int count = 0;
+    while (ss >> word) {
+        if (count == 0)
+            channelName = word;
+        else
+            password = word;
+        count++;
+    }
     for (std::vector<Channel *>::iterator it = server.get_channels().begin(); it != server.get_channels().end(); it++) {
-        if ((*it)->get_name() == message._params) {
+        if ((*it)->get_name() == channelName) {
             if ((*it)->get_limitSet() == true) {
-                if ((*it)->get_userSize() > (*it)->get_limit()) {
-                    send(_fd, ERR_CHANNELISFULL(_nick, _channel_rn->get_name()).c_str(), ERR_CHANNELISFULL(_nick, _channel_rn->get_name()).size(), 0);
+                if ((*it)->get_userSize() + 1 > (*it)->get_limit()) {
+                    send(_fd, ERR_CHANNELISFULL(_nick, channelName).c_str(), ERR_CHANNELISFULL(_nick, channelName).size(), 0);
                     return;
                 }
             }
             if ((*it)->get_inviteOnly() == true) {
                 if (this->get_InviteStatus(*it) == false) {
-                    send(_fd, ERR_INVITEONLYCHAN(_nick, message._params).c_str(), ERR_INVITEONLYCHAN(_nick, message._params).size(), 0);
+                    send(_fd, ERR_INVITEONLYCHAN(_nick, channelName).c_str(), ERR_INVITEONLYCHAN(_nick, channelName).size(), 0);
                     return;
                 }
             }
+            if((*it)->get_keySet() == true) {
+                if ((*it)->get_password() != password)
+                {
+                    send(_fd, ERR_BADCHANNELKEY(_nick, channelName).c_str(), ERR_BADCHANNELKEY(_nick, channelName).size(), 0);
+                    return;
+                }
+            }
+            std::cout << "after " << std::endl;
             (*it)->add_user(*this);
             set_channel_atm(**it);
             setOperatorStatus(**it, false);
@@ -313,7 +339,7 @@ void User::command_join(Server &server, s_message &message) {
             i++;
     }
     if (i == server.get_channels().size()) {
-        Channel *channel = new Channel(message._params);
+        Channel *channel = new Channel(channelName);
         channel->add_user(*this);
         set_channel_atm(*channel);
         setOperatorStatus(*channel, true);
@@ -524,7 +550,7 @@ void User::interpretMode(s_flag *parsed, std::vector<std::string> options)
             if (changed_plus == false) {
                 send(_fd, ERR_USERNOTINCHANNEL(nickname, _channel_rn->get_name()).c_str(),
                      ERR_USERNOTINCHANNEL(nickname, _channel_rn->get_name()).size(), 0); // TODO
-                continue;
+                continue; // ?
             }
             i++;
         }
@@ -552,7 +578,7 @@ void User::interpretMode(s_flag *parsed, std::vector<std::string> options)
         }
         else
         {
-            send(_fd, ERR_UMODEUNKNOWNFLAG(this->_nick).c_str(), ERR_UMODEUNKNOWNFLAG(this->_nick).size(), 0);
+            send(_fd, ERR_UNKNOWNMODE(_serverName, _nick, parsed->flag).c_str(), ERR_UNKNOWNMODE(_serverName, _nick, parsed->flag).size(), 0);
         }
         parsed = parsed->next;
     }
@@ -743,4 +769,30 @@ void User::command_invite(Server &server, s_message &message) {
     }
 
 
+}
+
+void User::command_quit(Server &server, s_message &message) {
+    std::cout << "command_quit function checked" << std::endl;
+    for (std::vector<Channel *>::iterator it = server.get_channels().begin(); it != server.get_channels().end(); it++) {
+        for (std::vector<User *>::iterator it2 = (*it)->get_users().begin(); it2 != (*it)->get_users().end(); it2++) {
+            if ((*it2)->get_nick() == _nick) {
+                if (message._params.empty())
+                    (*it)->send_to_all_macro(PART(_nick, _name, _hostName, (*it)->get_name()));
+                else
+                    (*it)->send_to_all_macro(PART_REASON(_nick, _name, _hostName, (*it)->get_name(), message._params));
+                (*it)->remove_user(*this);
+                break;
+            }
+        }
+    }
+    send(_fd, QUIT(_nick, _name, _hostName).c_str(), QUIT(_nick, _name, _hostName).size(), 0);
+    for (std::vector<User *>::iterator it = server.get_clients().begin(); it != server.get_clients().end(); it++) {
+        if ((*it)->get_nick() == _nick) {
+            close(_fd);
+            server.get_clients().erase(it);
+            server.decrease_num_clients(1);
+            delete this;
+            break;
+        }
+    }
 }
