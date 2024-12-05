@@ -16,10 +16,12 @@ class Server {
         Server(Server const & src);
         Server & operator=(Server const & src);
 
+        std::vector<User> &get_clients();
         std::vector<Channel> &get_channels();
         std::string get_password() const;
 
         void launchServer();
+
         void set_exit_status(bool status);
 
         void print_channels();
