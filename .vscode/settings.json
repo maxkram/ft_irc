@@ -49,6 +49,7 @@
         "cinttypes": "cpp",
         "typeinfo": "cpp",
         "sstream": "cpp",
+        "map": "cpp",
         "__bit_reference": "cpp",
         "__config": "cpp",
         "__debug": "cpp",
@@ -71,6 +72,7 @@
         "ios": "cpp",
         "locale": "cpp",
         "mutex": "cpp",
-        "ratio": "cpp"
+        "ratio": "cpp",
+        "__tree": "cpp"
     }
 }

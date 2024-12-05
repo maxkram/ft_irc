@@ -1,15 +1,16 @@
 #include "../inc/Channel.hpp"
 
-
 Channel::Channel(std::string name): _name(name) {
     _isInviteOnly = false;
     _topicRestricted = false;
     _keySet = false;
     _limitSet = false;
+    _password = "\0";
+    _limit = 0;
+    _topic = "\0";
 }
 
 Channel::~Channel() {
-    delete this;
 }
 
 Channel::Channel(Channel const &src) {
@@ -26,18 +27,20 @@ Channel &Channel::operator=(Channel const &src) {
 }
 
 void Channel::add_user(User &user) {
-    _users.push_back(user);
+    _users.push_back(&user);
+    for (const auto& user_ptr : _users) {
+        std::cout << "Name: " << user.get_name() << ", nick: " << user.get_nick() << std::endl;
+    }
     std::cout << "user added to the channel : " << user.get_name() << std::endl;
 }
 
-void Channel::remove_user(User &user) {
-    for (std::vector<User>::iterator it = _users.begin(); it != _users.end(); ++it) {
-        if (it->get_fd() == user.get_fd()) {
-            _users.erase(it);
-            break;
-        }
+void Channel::send_to_all(std::string msg) {
+    for (std::vector<User *>::iterator it = _users.begin(); it != _users.end(); ++it) {
+        send((*it)->get_fd(), msg.c_str(), msg.length(), 0);
     }
 }
+
+
 
 void Channel::set_name(std::string name) {
     _name = name;
@@ -55,10 +58,59 @@ std::string Channel::get_topic() const {
     return _topic;
 }
 
-std::vector<User> &Channel::get_users()  {
+std::vector<User*> &Channel::get_users()  {
     return _users;
 }
 
 bool Channel::get_topicRestricted() const {
     return _topicRestricted;
+}
+
+void Channel::set_topicRestricted(bool topicRestricted) {
+    _topicRestricted = topicRestricted;
+}
+
+bool Channel::get_inviteOnly() const {
+    return _isInviteOnly;
+}
+
+void Channel::set_inviteOnly(bool isInviteOnly) {
+    _isInviteOnly = isInviteOnly;
+}
+
+
+int Channel::get_userSize() const {
+    return _users.size();
+}
+
+bool Channel::get_limitSet() const {
+    return _limitSet;
+}
+
+void Channel::set_limitSet(bool limitSet) {
+    _limitSet = limitSet;
+}
+
+int Channel::get_limit() const {
+    return _limit;
+}
+
+void Channel::set_limit(int limit) {
+    _limit = limit;
+}
+
+std::string Channel::get_password() const {
+    return _password;
+}
+
+void Channel::set_password(std::string password) {
+    _password = password;
+}
+
+bool Channel::get_keySet() const {
+    return _keySet;
+}
+
+void Channel::set_keySet(bool key) {
+    _keySet = key;
 }
