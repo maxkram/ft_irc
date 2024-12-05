@@ -173,17 +173,22 @@ void Server::launchServer() {
 
 void Server::print_channels() {
     std::cout << "Printing channels" << std::endl;
-    for (std::vector<Channel>::iterator channel = get_channels().begin(); channel != get_channels().end(); ++channel) {
+    std::vector<Channel>& temp = get_channels();
+
+    for (std::vector<Channel>::iterator channel = temp.begin(); channel != temp.end(); ++channel) {
         std::cout << "Channel name: " << channel->get_name() << std::endl;
-        std::cout << "Channel users: " << std::endl;
 
         std::vector<User>& users = channel->get_users();
         if (users.empty()) {
             std::cout << "No users in this channel" << std::endl;
         } else {
+            std::cout << "Number of users in this channel: " << users.size() << std::endl;
+
             for (std::vector<User>::const_iterator user = users.begin(); user != users.end(); ++user) {
                 std::cout << "User name: " << user->get_name() << std::endl;
             }
         }
+
+        std::cout << std::endl;
     }
 }

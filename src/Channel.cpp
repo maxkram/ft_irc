@@ -1,13 +1,16 @@
 #include "../inc/Channel.hpp"
 
 
-Channel::Channel(std::string name): _name(name) {}
-
-Channel::Channel(std::string name, User &user): _name(name)  {
-    _users.push_back(user);
+Channel::Channel(std::string name): _name(name) {
+    _isInviteOnly = false;
+    _topicRestricted = false;
+    _keySet = false;
+    _limitSet = false;
 }
 
-Channel::~Channel() {}
+Channel::~Channel() {
+    delete this;
+}
 
 Channel::Channel(Channel const &src) {
     *this = src;
@@ -24,6 +27,7 @@ Channel &Channel::operator=(Channel const &src) {
 
 void Channel::add_user(User &user) {
     _users.push_back(user);
+    std::cout << "user added to the channel : " << user.get_name() << std::endl;
 }
 
 void Channel::remove_user(User &user) {
@@ -53,4 +57,8 @@ std::string Channel::get_topic() const {
 
 std::vector<User> &Channel::get_users()  {
     return _users;
+}
+
+bool Channel::get_topicRestricted() const {
+    return _topicRestricted;
 }
