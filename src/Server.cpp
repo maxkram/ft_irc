@@ -108,24 +108,23 @@ void Server::read_client()
 {
     std::vector<pollfd> &connectionFds = *_pollfds;
 
-    for (int i = 1; i <= _num_clients; i++)
-    {
-        if (connectionFds[i].fd != -1 && connectionFds[i].revents & POLLIN)
-        {
+    for (int i = 1; i <= _num_clients; i++) {
+        if (connectionFds[i].fd != -1 && connectionFds[i].revents & POLLIN) {
             std::cout << "Reading..." << std::endl;
             char buf[BUFFER_SIZE];
             memset(buf, 0, sizeof(buf));
             int bytes = recv(connectionFds[i].fd, buf, sizeof(buf), 0);
             if (bytes == -1)
             {
-                if (errno == EWOULDBLOCK || errno == EAGAIN)
-                    continue;
+                if (errno == EWOULDBLOCK)
+                    {std::cout << "EWOULDBLOCK" << std::endl; continue;}
                 else
                     throw std::runtime_error("Error reading inside loop");
             }
             else if (bytes == 0) {
                 throw std::runtime_error("Error in the reading, bytes == 0");
             }
+            std::cout << "Buffer is : " << buf << std::endl;
             splitBuf(buf, connectionFds[i].fd, *this);
         }
     }
@@ -134,15 +133,19 @@ void Server::read_client()
 void Server::splitBuf(std::string buf, int fd, Server &server) {
     size_t start = 0;
     size_t end = buf.find("\r\n");
-
+    if (end > BUFFER_SIZE)
+        end = BUFFER_SIZE;
+    if (end == 0)
+        return;
     for (std::vector<User *>::iterator it = _clients.begin(); it != _clients.end(); it++) {
+
         if ((*it)->get_fd() == fd) {
             while (end != std::string::npos) {
             std::string message(buf.substr(start, end - start));
             start = end + 2;
             end = buf.find("\r\n", start);
-                (*it)->splitMessage(fd, server, message);
-        }
+            (*it)->splitMessage(fd, server, message);
+            }
         break;
         }
     }
@@ -171,10 +174,10 @@ void Server::launchServer() {
 
 void Server::print_channels() {
     std::cout << "Printing channels" << std::endl;
-     std::vector<Channel *>& temp = get_channels();
+    std::vector<Channel *>& temp = get_channels();
 
     for (std::vector<Channel *>::iterator channel = temp.begin(); channel != temp.end(); ++channel) {
-            std::cout << "Channel name: " << (*channel)->get_name() << std::endl;
+        std::cout << "Channel name: " << (*channel)->get_name() << std::endl;
 
         std::vector<User*>& users = (*channel)->get_users();
         if (users.empty()) {
@@ -186,7 +189,6 @@ void Server::print_channels() {
                 std::cout << "User nickname: " << (*user)->get_nick() << std::endl;
             }
         }
-
         std::cout << std::endl;
     }
 }

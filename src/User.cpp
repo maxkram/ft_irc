@@ -87,6 +87,18 @@ bool User::get_operatorStatus(Channel* channel) const {
         return false;
 }
 
+void User::setInviteStatus(Channel &channel, bool isInvited) {
+    _isInvitedToChannel[&channel] = isInvited;
+}
+
+bool User::get_InviteStatus(Channel* channel) const {
+    std::map<Channel*, bool>::const_iterator it = _isInvitedToChannel.find(channel);
+    if (it->second == true)
+        return true;
+    else
+        return false;
+}
+
 Channel *User::get_channel_atm() const {
     return _channel_rn;
 }
@@ -122,6 +134,7 @@ void User::splitMessage(int fd, Server &server, std::string buf) {
             _message._params += " " + word;
         count++;
     }
+    std::cout << _message._params << std::endl;
     parseMessage(server);
 }
 
@@ -136,7 +149,6 @@ void User::parseMessage(Server &server) {
         else
             break;
     }
-
     switch (count) {
         case 0:
             command_pass(server);
@@ -151,8 +163,10 @@ void User::parseMessage(Server &server) {
             command_join(server, this->_message);
             break;
         case 4:
+            command_kick(server, this->_message);
             break;
         case 5:
+            command_invite(server, this->_message);
             break;
         case 6:
             break;
@@ -172,7 +186,7 @@ void User::parseMessage(Server &server) {
             command_part(server, this->_message);
             break;
         case 12:
-            std::cout << "Error: invalid command" << std::endl;
+            std::cout << "Error: invalid command" << std::endl;// check if correct. maybe to put the help ? 
             break;
     }
 }
@@ -189,9 +203,8 @@ void User::command_pass(Server &server) {
 
 void User::command_nick(Server &server, s_message &message) {
     std::cout << "command_nick function checked" << std::endl;
-    if (_passwordChecked == false) {
+    if (_passwordChecked == false)
         return;
-    }
     static int i = 0;
     std::string new_nick = message._params;
     if (_nick.empty() && (message._params.find(' ') != std::string::npos || message._params.size() > 9))
@@ -226,7 +239,7 @@ void User::command_nick(Server &server, s_message &message) {
 
 void User::command_user(Server &server, s_message &message) {
     std::cout << "command_user function checked" << std::endl;
-    if (_passwordChecked == false) {
+    if (_passwordChecked == false || _nick.empty() == true) {
         delete this;
         return;
     }
@@ -252,7 +265,7 @@ void User::command_user(Server &server, s_message &message) {
     if (this->_name.size() > 9) {
         _name = _name.substr(0, 9);
     }
-    if (count < 4) {
+    if (count < 3) {
         send(_fd, ERR_NEEDMOREPARAMS(message._command).c_str(), ERR_NEEDMOREPARAMS(message._command).size() , 0);
         return ;
     }
@@ -281,6 +294,12 @@ void User::command_join(Server &server, s_message &message) {
                     return;
                 }
             }
+            if ((*it)->get_inviteOnly() == true) {
+                if (this->get_InviteStatus(*it) == false) {
+                    send(_fd, ERR_INVITEONLYCHAN(_nick, message._params).c_str(), ERR_INVITEONLYCHAN(_nick, message._params).size(), 0);
+                    return;
+                }
+            }
             (*it)->add_user(*this);
             set_channel_atm(**it);
             setOperatorStatus(**it, false);
@@ -298,7 +317,7 @@ void User::command_join(Server &server, s_message &message) {
         channel->add_user(*this);
         set_channel_atm(*channel);
         setOperatorStatus(*channel, true);
-        send(_fd,RPL_YOUREOPER(_nick).c_str(), RPL_YOUREOPER(_nick).size(), 0);
+        send(_fd, RPL_YOUREOPER(_nick).c_str(), RPL_YOUREOPER(_nick).size(), 0);
         send(_fd, JOIN(_nick, _name, _hostName, channel->get_name()).c_str(),
                 JOIN(_nick, _name, _hostName, channel->get_name()).size(), 0);
         server.get_channels().push_back(channel);
@@ -307,7 +326,6 @@ void User::command_join(Server &server, s_message &message) {
 
 void User::command_topic(Server &server, s_message &message) {
     std::cout << "command_topic function checked" << std::endl;
-
     if (_isInAChannel == true)
     {
         if (_channel_rn->get_topicRestricted() == true)
@@ -360,7 +378,7 @@ void User::command_mode(Server &server, s_message &message) {
 
     if (_isInAChannel == false)
     {
-        std::cout << "Cannot use this command in that context" << std::endl;
+        std::cout << "Cannot use this command in that context" << std::endl; //TODO :
         return;
     }
     if (get_operatorStatus(_channel_rn) == false)
@@ -635,9 +653,94 @@ void User::command_privmsg(Server &server, s_message &message) {
 }
 
 void User::command_part(Server &server, s_message &message) {
+    if (!_channel_rn) {
+        send(_fd, ERR_USERNOTINCHANNEL(_nick, message._params).c_str(), ERR_USERNOTINCHANNEL(_nick, message._params).size(), 0);
+        return;
+    }
     send(_fd, PART(_nick, _name, _hostName, _channel_rn->get_name()).c_str(), PART(_nick, _name, _hostName, _channel_rn->get_name()).size(), 0);
     _channel_rn->remove_user(*this);
     _channel_rn = NULL;
     _isInAChannel = false;
+    setInviteStatus(*_channel_rn, false);
+}
+
+void User::command_kick(Server &server, s_message &message) {
+    std::cout << "command_kick function checked" << std::endl;
+    if (get_operatorStatus(_channel_rn) == false) {
+        send(_fd, ERR_CHANOPRIVSNEEDED(_channel_rn->get_name()).c_str(), ERR_CHANOPRIVSNEEDED(_channel_rn->get_name()).size(), 0);
+        return;
+    }
+    else {
+        std::stringstream ss(message._params);
+        std::string word;
+        std::string userToBeKicked;
+        std::string reason;
+        int count = 0;
+        while (ss >> word) {
+            if (count == 1)
+                userToBeKicked = word;
+            else if (count != 0)
+                reason += word + " ";
+            count++;
+        }
+        bool found = false;
+        if (userToBeKicked.empty() == false) {
+            for (std::vector<User *>::iterator it = _channel_rn->get_users().begin(); it != _channel_rn->get_users().end(); it++) {
+                if ((*it)->get_nick() == userToBeKicked) {
+                    _channel_rn->send_to_all_macro(KICK(_nick, _name, _hostName, _channel_rn->get_name(), userToBeKicked, reason));
+                    found = true;
+                    break;
+                }
+            }
+            if (found == false)
+                send(_fd, ERR_USERNOTINCHANNEL(userToBeKicked, _channel_rn->get_name()).c_str(), ERR_USERNOTINCHANNEL(userToBeKicked, _channel_rn->get_name()).size(), 0);
+        }
+        else
+            send(_fd, ERR_NEEDMOREPARAMS(message._command).c_str(), ERR_NEEDMOREPARAMS(message._command).size(), 0);
+    }
+}
+
+void User::command_invite(Server &server, s_message &message) {
+    std::cout << "command_invite function checked" << std::endl;
+    if (get_operatorStatus(_channel_rn) == false) {
+        send(_fd, ERR_CHANOPRIVSNEEDED(_channel_rn->get_name()).c_str(), ERR_CHANOPRIVSNEEDED(_channel_rn->get_name()).size(), 0);
+        return;
+    }
+    else {
+        std::stringstream ss(message._params);
+        std::string word;
+        std::string userToBeInvited;
+        std::string channel;
+        int count = 0;
+        while (ss >> word) {
+            if (count == 0)
+                userToBeInvited = word;
+            else if (count == 1)
+                channel = word;
+            count++;
+        }
+        bool found = false;
+        if (userToBeInvited.empty() == false) {
+            for (std::vector<User *>::iterator it = server.get_clients().begin(); it != server.get_clients().end(); it++) {
+                if ((*it)->get_nick() == userToBeInvited) {
+                    for (std::vector<User *>::iterator it = _channel_rn->get_users().begin(); it != _channel_rn->get_users().end(); it++) {
+                        if ((*it)->get_nick() == userToBeInvited) {
+                    send(_fd, ERR_USERONCHANNEL(_nick, userToBeInvited, channel).c_str(), ERR_USERONCHANNEL(_nick, userToBeInvited, channel).size(), 0);
+                    return;
+                }
+            }
+                    send((*it)->get_fd(), INVITE(_nick, _name, _hostName, userToBeInvited, channel).c_str(), INVITE(_nick, _name, _hostName, userToBeInvited, channel).size(), 0);
+                    found = true;
+                    (*it)->setInviteStatus(*_channel_rn, true);
+                    return;
+                }
+            }
+            if (found == false)
+                send(_fd, ERR_NOSUCHNICK(userToBeInvited).c_str(), ERR_NOSUCHNICK(userToBeInvited).size(), 0);
+        }
+        else
+            send(_fd, ERR_NEEDMOREPARAMS(message._command).c_str(), ERR_NEEDMOREPARAMS(message._command).size(), 0);
+    }
+
 
 }
