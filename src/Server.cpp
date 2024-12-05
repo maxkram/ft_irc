@@ -38,7 +38,7 @@ std::vector<User*> &Server::get_clients() {
     return _clients;
 }
 
-std::vector<Channel> &Server::get_channels() {
+std::vector<Channel *> &Server::get_channels() {
     return _channels;
 }
 
@@ -74,7 +74,6 @@ void Server::socket_polling() {
     int num_ready = poll(connectionFds.data(), _num_clients + 1, -1);
     if (num_ready < 0)
         throw std::runtime_error("Error polling");
-
 }
 
 void Server::connect() {
@@ -96,17 +95,12 @@ void Server::connect() {
     if (_num_clients == maxClients)
         throw std::runtime_error("Too many clients");
 
-
 	connectionFds[_num_clients + 1].fd = new_connection;
     connectionFds[_num_clients + 1].events = POLLIN | POLLOUT;
 
     User *new_user = new User(new_connection, id);
     _clients.push_back(new_user);
-    for (const auto& user_ptr : _clients) {
-        std::cout << "User: " << user_ptr->get_name() << std::endl;
-    }
     _num_clients++;
-    std::cout << "Num client is : " << _num_clients << std::endl;
     id++;
 }
 
@@ -119,7 +113,6 @@ void Server::read_client()
         if (connectionFds[i].fd != -1 && connectionFds[i].revents & POLLIN)
         {
             std::cout << "Reading..." << std::endl;
-            print_channels();
             char buf[BUFFER_SIZE];
             memset(buf, 0, sizeof(buf));
             int bytes = recv(connectionFds[i].fd, buf, sizeof(buf), 0);
@@ -178,20 +171,22 @@ void Server::launchServer() {
 
 void Server::print_channels() {
     std::cout << "Printing channels" << std::endl;
-    std::vector<Channel>& temp = get_channels();
-    for (std::vector<Channel>::iterator channel = temp.begin(); channel != temp.end(); ++channel) {
-        std::cout << "Channel name: " << channel->get_name() << std::endl;
+     std::vector<Channel *>& temp = get_channels();
 
-        std::vector<User*>& users = channel->get_users();
+    for (std::vector<Channel *>::iterator channel = temp.begin(); channel != temp.end(); ++channel) {
+            std::cout << "Channel name: " << (*channel)->get_name() << std::endl;
+
+        std::vector<User*>& users = (*channel)->get_users();
         if (users.empty()) {
             std::cout << "No users in this channel" << std::endl;
         } else {
             std::cout << "Number of users in this channel: " << users.size() << std::endl;
 
             for (std::vector<User*>::const_iterator user = users.begin(); user != users.end(); ++user) {
-                std::cout << "User name: " << (*user)->get_name() << std::endl;
+                std::cout << "User nickname: " << (*user)->get_nick() << std::endl;
             }
         }
+
         std::cout << std::endl;
     }
 }

@@ -76,6 +76,10 @@ void User::set_nick(std::string nick) {
     _nick = nick;
 }
 
+void User::set_name(std::string name) {
+    _name = name;
+}
+
 void User::splitMessage(int fd, Server &server, std::string buf) {
     std::stringstream ss(buf);
     std::string word;
@@ -162,10 +166,8 @@ void User::passwordCheck(Server &server) {
 
 bool User::command_nick(Server &server, s_message &message) {
     std::cout << "command_nick function checked" << std::endl;
-    std::cout << "fd is " << _fd << std::endl;
     std::string new_nick = message._params;
     std::string old = get_nick();
-    std::cout << "Nick is '" << old << "'" << std::endl;
         if (new_nick.empty()) {
             send(_fd, ERR_NONICKNAMEGIVEN(message._command).c_str(), ERR_NONICKNAMEGIVEN(message._command).size(), 0);
             return false;
@@ -192,7 +194,7 @@ bool User::command_user(Server &server, s_message &message) {
 
     while (ss >> word) {
         if (count == 0)
-            this->_name = word;
+            {set_name(word);}
         else if (count == 1)
             this->_hostName = word;
         else if (count == 2)
@@ -237,7 +239,6 @@ void User::command_join(Server &server, s_message &message) {
                     return;
                 }
             }
-            std::cout << "Channel name : " << it->get_name() << std::endl;
             it->add_user(*this);
             set_channel_atm(*it);
             setOperatorStatus(&(*it), false);
@@ -245,7 +246,6 @@ void User::command_join(Server &server, s_message &message) {
                 JOIN(this->get_nick(), this->get_name(), _hostName, it->get_name()).size(), 0);
             if (_channel_rn->get_topic().empty() == true)
                 send(_fd, RPL_TOPIC(_nick, _name, _hostName, _channel_rn->get_name(),  _channel_rn->get_topic()).c_str(), RPL_TOPIC(_nick, _name, _hostName, _channel_rn->get_name(), _channel_rn->get_topic()).size(), 0);
-            std::cout << "!!!! Number of user in this channel :" << _channel_rn->get_users().size() << std::endl;
             break;
         } 
         else
@@ -268,7 +268,6 @@ void User::command_topic(Server &server, s_message &message) {
     std::cout << "command_topic function checked" << std::endl;
 std::cout << " fd is " << _fd << "and _isInChannel is " << _isInAChannel << "and is operator is " 
 << this->get_operatorStatus(_channel_rn) << std::endl;
-
     if (_isInAChannel == true)
     {
         if (_channel_rn->get_topicRestricted() == true)
@@ -350,6 +349,7 @@ void User::command_mode(Server &server, s_message &message) {
             optionsArray.push_back(word);
         count++;
     }
+    //parser
     s_flag *parsed;
     if (flags[0] == '+' || flags[0] == '-')
         parsed = parserOption(flags);
@@ -505,10 +505,10 @@ s_flag *User::parserOption(std::string flags)
             else if (currentFlag != nullptr && currentFlag->prev != nullptr)
                 updateStruct(newFlag, currentFlag->prev->sign, true);
             else
-                    updateStruct(newFlag, 0, false);
+                updateStruct(newFlag, 0, false);
             parsedSign = 0;
         }
-        i++;
+        i++; 
     }
     return (head);
 }
@@ -523,5 +523,5 @@ s_flag *User::updateStruct(s_flag *newFlag, int sign, bool isValid)
 
 void User::command_privmsg(Server &server, s_message &message) {
     std::cout << "Command privmsg reached" << std::endl;
-    _channel_rn->send_to_all(message._params);
+    _channel_rn->send_to_all(message._params, this->get_nick());
 }

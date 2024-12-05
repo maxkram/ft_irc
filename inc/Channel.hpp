@@ -16,7 +16,8 @@ class Channel {
         std::string get_topic() const;
         void set_topic(std::string topic);
 
-        void send_to_all(std::string msg);
+        void send_to_all_private(std::string msg, std::string sender);
+        void send_to_all_macro(std::string macro);
 
         std::string get_name() const;
         void set_name(std::string name);
