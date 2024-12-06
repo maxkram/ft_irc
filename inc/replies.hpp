@@ -16,7 +16,7 @@
 # define JOIN(nick, user, host, channel) (":" + nick + "!" + user + "@" + host  + " JOIN " + channel + "\r\n")
 
 # define ERR_NONICKNAMEGIVEN(command) (command + ":No nickname given\r\n")
-
+# define ERR_NICKNAMEINUSE(nick) ("433 " + nick + " :Nickname already in use\r\n")
 # define ERR_NICKNAMEISUSE(nick) ("433 NICK :" + nick + "\r\n")
 
 # define ERR_NOTONCHANNEL(channel) ("442 " + channel + ": You're not on that channel\r\n")
@@ -47,7 +47,7 @@
 
 # define RPL_YOUREOPER(nick) ("381 " + nick + " :You are now an IRC operator\r\n")
 
-# define KICK(nick, user, host, chan, kicked, reason) (":" + nick + "!" + user + "@" + host + " KICK " + chan + " " + kicked + " :" + reason + "\r\n")
+# define KICK(nick, user, host, chan, kicked, reason) (":" + nick + "!" + user + "@" + host + " KICK " + chan + " " + kicked + ": " + reason + "\r\n")
 
 # define INVITE(nick, user, host, nickinvite, channel)  (":" + nick + "!" + user + "@" + host + " INVITE " + nickinvite + " " + channel + "\r\n")
 
@@ -62,3 +62,9 @@
 # define QUIT_REASON(nick, user, host, msg) (nick + "!" + user + "@" + host  + " QUIT :" + msg + "\r\n")
 
 # define ERR_BADCHANNELKEY(nick, chan) ("475 " + nick + " " + chan + " :Cannot join channel (+k)\r\n")
+
+# define RPL_NAMREPLY(nick, user, host, channel) ("353 " + nick + "!" + user + "@" + host + " = " + channel + " :")
+
+# define RPL_ENDOFNAMES(nick, user, host, channel) ("366 " + nick + "!" + user + "@" + host + " " + channel + " :End of NAMES list\r\n")
+
+# define ERR_NOSUCHCHANNEL(channel) ("403 " + channel + " :No such channel\r\n")
