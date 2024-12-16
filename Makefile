@@ -1,45 +1,46 @@
-# Source
+CXX = c++
+VERBOSE = 0
+CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -D VERBOSE=$(VERBOSE)
+NAME = ircserv 
+SRC =	srcs/main.cpp \
+		srcs/Server.cpp \
+		srcs/Client.cpp \
+		srcs/Command.cpp \
+		srcs/Channel.cpp \
+		srcs/commands/pass.cpp \
+		srcs/commands/nick.cpp \
+		srcs/commands/user.cpp \
+		srcs/commands/quit.cpp \
+		srcs/commands/oper.cpp \
+		srcs/commands/mode.cpp \
+		srcs/commands/join.cpp \
+		srcs/commands/part.cpp \
+		srcs/commands/ping.cpp \
+		srcs/commands/kill.cpp \
+		srcs/commands/privmsg.cpp \
+		srcs/commands/away.cpp \
+		srcs/commands/notice.cpp \
+		srcs/commands/invite.cpp	\
+		srcs/commands/topic.cpp \
+		srcs/commands/names.cpp \
+		srcs/commands/list.cpp \
+		srcs/commands/kick.cpp \
+		srcs/commands/whois.cpp \
+		srcs/commands/who.cpp \
 
-SRC =	src/main.cpp \
-		src/Server.cpp \
-		src/User.cpp \
-		src/Channel.cpp \
-
-HEADERS =	inc/irc.hpp \
-			inc/Server.hpp \
-			inc/User.hpp \
-			inc/Channel.hpp \
-
-OBJS =	$(SRC:.cpp=.o)
-
-CC = 	c++
-
-FLAGS =	-g -Wall -Wextra -Werror -std=c++98
-
-NAME =	ircserv
-
-RM =	rm -f
-
-GREEN =	\e[92;5;118m
-RED = \e[91;5;118m
-
-%.o: %.cpp
-	@$(CC) $(FLAGS) -c $< -o $@
+OBJ = $(SRC:.cpp=.o)
 
 all : $(NAME)
 
-$(NAME) : $(OBJS) $(HEADERS)
-	@$(CC) $(FLAGS) $(OBJS) -o $(NAME)
-	@printf "$(GREEN)Compiling done\n"
+$(NAME) : $(OBJ)
+	$(CXX) $(CXXFLAGS) $^ -o $@
 
-clean:
-	@$(RM) $(OBJS)
-	@printf "$(RED)Remove .o files\n"
+clean :
+	@rm -rf $(OBJ)
 
-fclean: clean
-	@$(RM) $(NAME)
-	@printf "$(RED)Remove executable\n"
+fclean : clean
+	@rm -rf $(NAME)
 
-re: fclean all
+re : fclean all
 
-.PHONY: all clean fclean re
+.PHONY : all clean fclean re
