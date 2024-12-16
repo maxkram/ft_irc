@@ -2,7 +2,7 @@
 
 Command::Command(std::string const & password, std::list<Client> & clients, std::string const & IP) : password(password), clients(clients), IP(IP) 
 {
-	cmdMap[std::string("PRIVMSG")] = &Command::privatmsg;
+	cmdMap[std::string("PRIVMSG")] = &Command::privateMessage;
 	cmdMap[std::string("AWAY")] = &Command::away;
 	cmdMap[std::string("NOTICE")] = &Command::notice;
 	cmdMap[std::string("INVITE")] = &Command::invite;
@@ -87,7 +87,7 @@ bool	Command::isSpecialChar(char c) const
 
 void	Command::setIP(std::string const & val) { IP = val;}
 
-std::vector<std::string>    Command::ft_split(std::string const & s, std::string const & seperator)
+std::vector<std::string>    Command::splitString(std::string const & s, std::string const & seperator)
 {
 	std::vector<std::string> output;
 	std::string::size_type prev_pos = 0, pos = 0;
@@ -105,7 +105,7 @@ std::vector<std::string>    Command::ft_split(std::string const & s, std::string
 	return output;
 }
 
-std::vector<std::string>	Command::splitCmd(std::string const & s, std::string const & seperator)
+std::vector<std::string>	Command::splitCommand(std::string const & s, std::string const & seperator)
 {
 	 	std::vector<std::string> output;
 		std::string::size_type prev_pos = 0, pos = 0;
@@ -144,18 +144,18 @@ std::vector<std::string>	Command::splitCmd(std::string const & s, std::string co
 	 return output;
 }
 
-void	Command::parsCmd(Client & client)
+void	Command::parseCommand(Client & client)
 {
 	std::vector<std::string>	cmd;
 	if(client.getBuffer()[client.getBuffer().length() - 2] == '\r')
-		cmd = ft_split(client.getBuffer(), "\r\n");
+		cmd = splitString(client.getBuffer(), "\r\n");
 	else
-		cmd = ft_split(client.getBuffer(), "\n");
+		cmd = splitString(client.getBuffer(), "\n");
 	std::vector<std::string>::iterator	it = cmd.begin();
 	std::map<std::string, pfunc>::iterator	iter;
 	for (; it != cmd.end(); it++)
 	{
-		std::vector<std::string>	cmds = splitCmd(*it, " ");
+		std::vector<std::string>	cmds = splitCommand(*it, " ");
 		if (cmds[0][0] == ':')
 		{
 			cmds[0].erase(0, 1);

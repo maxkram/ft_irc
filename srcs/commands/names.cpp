@@ -40,7 +40,7 @@ void Command::names(std::vector<std::string> cmds, Client & client)
         std::vector<std::string>	keys;
         std::vector<std::string>::iterator	iChan;
         std::string message;    
-        keys = ft_split(cmds[1], ",");
+        keys = splitString(cmds[1], ",");
         iChan = keys.begin();
         for (; iChan != keys.end(); iChan++)
         {

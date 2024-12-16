@@ -1,6 +1,6 @@
 #include "../../headers/Command.hpp"
 
-void	Command::privatmsg(std::vector<std::string> cmds, Client & client)
+void	Command::privateMessage(std::vector<std::string> cmds, Client & client)
 {
     if(!client.isRegistered())
     {

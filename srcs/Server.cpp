@@ -102,7 +102,7 @@ void	Server::launch()
 				}
 				if (it->getBuffer()[it->getBuffer().length() - 1] == '\n')
 				{
-					command.parsCmd(*it);
+					command.parseCommand(*it);
 					it->getBuffer().clear();
 				}
 				bzero(buf, res);

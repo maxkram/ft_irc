@@ -12,7 +12,7 @@ void Command::part(std::vector<std::string> cmds, Client &client)
 		sendMessage(client, "461", cmds[0], ERR_NEEDMOREPARAMS);
 		return;
 	}
-	std::vector<std::string> chans = ft_split(cmds[1], ",");
+	std::vector<std::string> chans = splitString(cmds[1], ",");
 	std::vector<std::string>::iterator it = chans.begin();
 	std::map<std::string, Channel>::iterator itMap;
 	for (; it != chans.end(); it++)

@@ -23,13 +23,13 @@ void	Command::join(std::vector<std::string> cmds, Client & client)
 		part(partCmd, client);
 		return;
 	}
-	std::vector<std::string>	chans = ft_split(cmds[1], ",");
+	std::vector<std::string>	chans = splitString(cmds[1], ",");
 	std::vector<std::string>	keys;
 	std::vector<std::string>	names;
 	names.push_back("names");
 	names.push_back(cmds[1]);
 	if (cmds.size() > 2)
-		keys = ft_split(cmds[2], ",");
+		keys = splitString(cmds[2], ",");
 	std::vector<std::string>::iterator	it = chans.begin();
 	std::vector<std::string>::iterator	itKey = keys.begin();
 	std::map<std::string, Channel>::iterator	itMap;

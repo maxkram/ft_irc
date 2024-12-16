@@ -38,11 +38,11 @@ class	Command
 
 			void	setIP(std::string const & val);
 
-			std::vector<std::string>	ft_split(std::string const & s, std::string const & seperator);
+			std::vector<std::string>	splitString(std::string const & s, std::string const & seperator);
 			
-			std::vector<std::string>	splitCmd(std::string const & s, std::string const & seperator);
+			std::vector<std::string>	splitCommand(std::string const & s, std::string const & seperator);
 
-			void	parsCmd(Client & client);
+			void	parseCommand(Client & client);
 
 			void	registerClient(Client & client);
 
@@ -68,7 +68,7 @@ class	Command
 			
 			void	kill(std::vector<std::string> cmds, Client & client);
 
-			void	privatmsg(std::vector<std::string> cmds, Client & client);
+			void	privateMessage(std::vector<std::string> cmds, Client & client);
 
 			void	away(std::vector<std::string> msg, Client & client);
 
