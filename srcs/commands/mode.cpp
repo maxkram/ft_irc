@@ -25,7 +25,7 @@ void Command::mode(std::vector<std::string> cmds, Client & client)
                 sendMessage(client, "403", cmds[1], ERR_NOSUCHCHANNEL);
             else
             {
-                sendMessage(client, "324", cmds[1], usedMods(cmds[1]));
+                sendMessage(client, "324", cmds[1], getUsedModes(cmds[1]));
                 sendMessage(client, "333", cmds[1], std::to_string((int)result));
             }
         }

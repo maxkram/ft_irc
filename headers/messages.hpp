@@ -2,49 +2,48 @@
 
 # define UNDER	std::string("\e[4m")
 # define RESET	std::string("\e[0m")
-# define RED	std::string("\e[31m")
-# define BLUE	std::string("\e[94m")
-# define CYAN std::string("\e[96m")
-# define GREEN	std::string("\e[32m")
-# define YELLOW	std::string("\e[33m")
+# define RED	std::string("\e[35m")
+# define BLUE	std::string("\e[95m")
+# define CYAN   std::string("\e[38;5;208m")
+# define GREEN	std::string("\e[38;5;82m")
+# define YELLOW	std::string("\e[38;5;220m")
 
 # define CLIENT client.getNick() + "!" + client.getUsername() + "@" + client.getIP()
 # define TERMINATOR terminator.getNick() + "!" + terminator.getUsername() + "@" + terminator.getIP()
 
-# define RPL_WELCOME ":Welcome to the ft_IRC Internet Relay Network " + CLIENT
-# define RPL_NOTOPIC ":No topic is set"
-# define RPL_ENDOFWHOIS ":End of WHOIS list"
-# define RPL_YOUREOPER ":You are now an IRC operator"
-# define RPL_UNAWAY ":You are no longer marked as being away"
-# define RPL_NOWAWAY ":You have been marked as being away"
-# define RPL_ENDOFWHO ":End of WHO list"
-# define RPL_WHOISIDLE " :seconds idle"
+# define RPL_WELCOME GREEN + ":Welcome to the vibrant and colorful ft_IRC Network " + CLIENT + "! Enjoy your stay!" + RESET
+# define RPL_NOTOPIC YELLOW + ":This channel currently has no topic set. Start a discussion!" + RESET
+# define RPL_ENDOFWHOIS GREEN + ":End of WHOIS query for " + CLIENT + RESET
+# define RPL_YOUREOPER GREEN + ":Congratulations, you are now an IRC operator. Handle the power responsibly!" + RESET
+# define RPL_UNAWAY GREEN + ":You are back online and no longer marked as away." + RESET
+# define RPL_NOWAWAY GREEN + ":You are marked as away. Let others know why!" + RESET
+# define RPL_ENDOFWHO GREEN + ":End of WHO query. Hope you found what you were looking for!" + RESET
+# define RPL_WHOISIDLE YELLOW + " :User has been idle for seconds. Reach out or wait!" + RESET
 
-# define ERR_NOTREGISTERED ":You have not registered"
-# define ERR_NOSUCHSERVICE ":No such service"
-# define ERR_NOPRIVILEGES ":Permission Denied- You're not an IRC operator"
-# define ERR_NOSUCHNICK ":No such nick/channel"
-# define ERR_NORECIPIENT ":No recipient given (PRIVMSG)"
-# define ERR_NOTEXTTOSEND ":No text to send"
-# define ERR_CANNOTSENDTOCHAN ":Cannot send to channel"
-# define ERR_CHANOPRIVSNEEDED ":You're not channel operator"
-# define ERR_USERNOTINCHANNEL ":They aren't on that channel"
-# define ERR_NEEDMOREPARAMS ":Not enough parameters"
-# define ERR_ALREADYREGISTRED ":Unauthorized command (already registered)"
-# define ERR_PASSWDMISMATCH ":Password incorrect"
-# define ERR_NOOPERHOST ":No O-lines for your host"
-# define ERR_NOSUCHCHANNEL ":No such channel"
-# define ERR_NOTONCHANNEL " :You're not on that channel"
-# define ERR_USERONCHANNEL ":is already on channel"
-# define ERR_INVITEONLYCHAN " :Cannot join channel (+i)"
-# define ERR_BADCHANNELKEY " :Cannot join channel (+k)"
-# define ERR_UNKNOWNCOMMAND ":Unknown command"
-# define ERR_NONICKNAMEGIVEN ":No nickname given"
-# define ERR_NICKNAMEINUSE ":Nickname is already in use"
-# define ERR_ERRONEUSNICKNAME ":Erroneous nickname"
-# define ERR_UMODEUNKNOWNFLAG ":Unknown MODE flag"
-# define ERR_USERSDONTMATCH ":Cannot change mode for other users"
-# define ERR_NOORIGIN ":No origin specified"
-# define ERR_NOSUCHSERVER ":No such server"
-# define ERR_NOORIGIN ":No origin specified"
-# define ERR_UNKNOWNMODE ":is unknown mode char to me"
+# define ERR_NOTREGISTERED RED + ":You have not registered. Use /REGISTER to join the fun!" + RESET
+# define ERR_NOSUCHSERVICE RED + ":No such service exists on this network. Check your command!" + RESET
+# define ERR_NOPRIVILEGES RED + ":Permission Denied - You're not an IRC operator." + RESET
+# define ERR_NOSUCHNICK RED + ":No such nick/channel. Please check the name and try again." + RESET
+# define ERR_NORECIPIENT YELLOW + ":No recipient given (PRIVMSG). Specify a user or channel." + RESET
+# define ERR_NOTEXTTOSEND YELLOW + ":No text provided to send. Say something!" + RESET
+# define ERR_CANNOTSENDTOCHAN RED + ":Message could not be sent to the channel." + RESET
+# define ERR_CHANOPRIVSNEEDED RED + ":You need to be a channel operator to do that!" + RESET
+# define ERR_USERNOTINCHANNEL RED + ":The user isn't on that channel." + RESET
+# define ERR_NEEDMOREPARAMS YELLOW + ":Not enough parameters provided. Check the command usage." + RESET
+# define ERR_ALREADYREGISTRED RED + ":You are already registered. Command unauthorized!" + RESET
+# define ERR_PASSWDMISMATCH RED + ":Incorrect password. Try again or reset it." + RESET
+# define ERR_NOOPERHOST RED + ":No O-lines for your host." + RESET
+# define ERR_NOSUCHCHANNEL RED + ":No such channel. Check the name and try again." + RESET
+# define ERR_NOTONCHANNEL RED + " :You're not on that channel. Join it first!" + RESET
+# define ERR_USERONCHANNEL YELLOW + ":The user is already on the channel." + RESET
+# define ERR_INVITEONLYCHAN RED + " :Cannot join channel (+i). You need an invitation." + RESET
+# define ERR_BADCHANNELKEY RED + " :Cannot join channel (+k). Incorrect key provided." + RESET
+# define ERR_UNKNOWNCOMMAND YELLOW + ":Unknown command. Check the syntax or available commands." + RESET
+# define ERR_NONICKNAMEGIVEN YELLOW + ":No nickname given. Please provide one." + RESET
+# define ERR_NICKNAMEINUSE RED + ":The nickname is already in use. Choose another one!" + RESET
+# define ERR_ERRONEUSNICKNAME YELLOW + ":Invalid nickname. Please follow the IRC nickname rules." + RESET
+# define ERR_UMODEUNKNOWNFLAG YELLOW + ":Unknown user mode flag. Check the available options." + RESET
+# define ERR_USERSDONTMATCH YELLOW + ":Cannot change modes for other users." + RESET
+# define ERR_NOORIGIN RED + ":No origin specified. Provide more details." + RESET
+# define ERR_NOSUCHSERVER RED + ":No such server. Check the address and try again." + RESET
+# define ERR_UNKNOWNMODE YELLOW + ":Unknown mode character provided. Check the syntax." + RESET

@@ -45,7 +45,7 @@ void	Command::join(std::vector<std::string> cmds, Client & client)
 				itMap->second.setPassword(*itKey);
 			client.getChannels().push_back(*it);
 			sendConfirm(client, cmds[0] + " " + *it, "");
-			sendMessage(client, "324", cmds[1], usedMods(cmds[1]));
+			sendMessage(client, "324", cmds[1], getUsedModes(cmds[1]));
 			Command::names(names, client);
 			itMap->second.sendChannelMessage(client, cmds[0] + " " + *it, "");
 		}
@@ -66,7 +66,7 @@ void	Command::join(std::vector<std::string> cmds, Client & client)
 					itMap->second.addClient(&client);
 					client.getChannels().push_back(*it);
 					sendConfirm(client, cmds[0] + " " + *it, "");
-					sendMessage(client, "324", cmds[1], usedMods(cmds[1]));
+					sendMessage(client, "324", cmds[1], getUsedModes(cmds[1]));
 					Command::names(names, client);
 					if (!itMap->second.getTopic().empty())
 					{

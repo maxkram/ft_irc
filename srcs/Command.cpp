@@ -26,6 +26,11 @@ Command::Command(std::string const & password, std::list<Client> & clients, std:
 
 Command::~Command() {}
 
+void Command::sendAll(const Client& client, const std::string& prefix, const std::string& cmd, const std::string& args) {
+    std::string message = ":" + prefix + " " + cmd + " " + args + "\r\n";
+    send(client.getSocket(), message.c_str(), message.length(), 0);
+}
+
 void	Command::sendMessage(Client const & client, std::string nb, std::string opt, std::string msg)
 {
 	std::string	message(":" + IP);
@@ -86,6 +91,23 @@ bool	Command::isSpecialChar(char c) const
 }
 
 void	Command::setIP(std::string const & val) { IP = val;}
+
+std::vector<std::string> Command::splitAll(const std::string& str, const std::string& delimiter) {
+    std::vector<std::string> tokens;
+    std::string::size_type start = 0, end = 0;
+
+    while ((end = str.find(delimiter, start)) != std::string::npos) {
+        if (end != start) // Skip empty tokens
+            tokens.push_back(str.substr(start, end - start));
+        start = end + delimiter.size();
+    }
+
+    if (start < str.size()) // Add last token
+        tokens.push_back(str.substr(start));
+
+    return tokens;
+}
+
 
 std::vector<std::string>    Command::splitString(std::string const & s, std::string const & seperator)
 {
@@ -184,59 +206,41 @@ void	Command::registerClient(Client & client)
 		}
 		client.setRegistered(true);
 		sendMessage(client, "001", "", RPL_WELCOME); 
-		welcomeMsg(client);
 	}
 }
 
-void	Command::welcomeMsg(Client & client)
-{
-	std::vector<std::string>	welcomeMsg;
-	welcomeMsg.push_back(":" + CYAN + "´´´´´´´¶¶¶¶´´´´´´´´´´´´´´´´´´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´´´´´¶¶´´´´¶¶¶¶¶´´¶¶¶¶´¶¶¶¶´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´´´´´¶´´´´´´´´´´¶¶¶¶´¶¶´´´´¶´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´´´´´¶´´´´´´´´´´¶´¶¶¶¶¶¶´´´¶´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´´´´¶´´´´´´´´´´¶¶¶¶¶´´´¶¶¶¶¶´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´´´¶´´´´´´´´´´´´´´´´¶¶¶¶¶¶¶¶´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´´¶´´´´´´´´´´´´´´´´´´´¶¶¶¶¶´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´¶¶¶´´´´´¶´´´´´´´´´´´´´´´´´¶´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´´¶´´´´¶¶´´´´´´´´´´´´´´´´´¶´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´´¶¶´´´´´´´´´´´´´´´´¶¶´´´´¶´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´¶¶¶´´´´´´´´´¶¶¶´´´´¶¶´´´¶¶´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´´´´¶¶´´´´´´´´´´´´´´´´´´¶¶¶´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´´´´´´¶¶¶´´´´´´´´´´´´´¶¶¶´´´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´´¶¶¶¶¶´¶¶¶¶¶¶¶¶¶¶¶¶¶¶¶´´´´´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´´¶´´´´¶¶¶¶¶´´´´¶¶¶¶´´´¶´´´´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´´¶´´´´¶¶¶´¶¶¶¶¶¶¶¶´´´¶¶¶´´´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´´¶¶¶¶¶¶¶¶¶¶¶¶¶´´¶¶¶¶¶´´´¶¶´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´¶´´´´´´¶¶¶¶¶¶¶¶¶¶¶´´´´´´´¶´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´¶´´´´´´´´´¶¶¶¶¶¶¶¶´´´´´´´´¶´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´¶´´´´´´´´¶¶¶¶¶¶¶¶´´´´´´´´¶´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´¶¶´´´´´´´¶¶´´´´¶¶´´´´´´¶¶´´´" + RESET);
-	welcomeMsg.push_back(":" + CYAN + "´´´´¶¶¶¶¶¶¶´´´´´´´´¶¶¶¶¶¶´´´´´" + RESET);
-	
-	std::vector<std::string>::iterator	it = welcomeMsg.begin();
-	for(; it != welcomeMsg.end(); it++)
-	{
-		sendMessage(client, "372", "", *it); 
-	}
-}
+// std::string Command::usedMods(std::string channel)
+// {
+// 	std::map<std::string, Channel>::iterator    itMap = chanMap.begin();    
+// 	std::string usedMod("+");
+// 	for(; itMap != chanMap.end(); itMap++)
+// 	{
+// 		if (itMap->first == channel)
+// 		{
+// 			if (itMap->second.isTopicEnabled())
+// 				usedMod.append("t");                        
+// 			if (itMap->second.isInviteEnabled())
+// 				usedMod.append("i");                        
+// 			if (itMap->second.hasPassword())
+// 				usedMod.append("k");                        
+// 			break;
+// 		}
+// 	}
+// 	return usedMod;
+// }
 
-std::string Command::usedMods(std::string channel)
-{
-	std::map<std::string, Channel>::iterator    itMap = chanMap.begin();    
-	std::string usedMod("+");
-	for(; itMap != chanMap.end(); itMap++)
-	{
-		if (itMap->first == channel)
-		{
-			if (itMap->second.isTopicEnabled())
-				usedMod.append("t");                        
-			if (itMap->second.isInviteEnabled())
-				usedMod.append("i");                        
-			if (itMap->second.hasPassword())
-				usedMod.append("k");                        
-			break;
-		}
-	}
-	return usedMod;
+std::string Command::getUsedModes(const std::string& channel) {
+    std::map<std::string, Channel>::iterator it = chanMap.find(channel);
+    if (it == chanMap.end())
+        return "+";
+
+    std::string modes("+");
+    if (it->second.isTopicEnabled())
+        modes += "t";
+    if (it->second.isInviteEnabled())
+        modes += "i";
+    if (it->second.hasPassword())
+        modes += "k";
+
+    return modes;
 }

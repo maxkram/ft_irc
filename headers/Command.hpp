@@ -23,6 +23,7 @@ class	Command
 
 			Command(std::string const & pass, std::list<Client> & clients, std::string const & IP);
 			~Command();
+			void	sendAll(const Client& client, const std::string& prefix, const std::string& cmd, const std::string& args);
 
 			void	sendMessage(Client const & client, std::string nb, std::string opt, std::string err);
 
@@ -38,6 +39,8 @@ class	Command
 
 			void	setIP(std::string const & val);
 
+			std::vector<std::string>	splitAll(const std::string& str, const std::string& delimiter);
+			
 			std::vector<std::string>	splitString(std::string const & s, std::string const & seperator);
 			
 			std::vector<std::string>	splitCommand(std::string const & s, std::string const & seperator);
@@ -74,8 +77,6 @@ class	Command
 
 			void	notice(std::vector<std::string> msg, Client & client);
 
-			void	welcomeMsg(Client & client);
-
 			void	invite(std::vector<std::string> cmds, Client & client);
 
 			void	topic(std::vector<std::string> cmds, Client & client);
@@ -90,7 +91,9 @@ class	Command
 
 			void	who(std::vector<std::string> cmds, Client & client);
 
-			std::string	usedMods(std::string channel);
+			// std::string	usedMods(std::string channel);
+
+			std::string	getUsedModes(const std::string& channel);
 
 	private :
 			std::string	password;

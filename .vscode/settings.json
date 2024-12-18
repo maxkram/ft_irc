@@ -73,6 +73,12 @@
         "locale": "cpp",
         "mutex": "cpp",
         "ratio": "cpp",
-        "__tree": "cpp"
+        "__tree": "cpp",
+        "csignal": "cpp",
+        "fstream": "cpp",
+        "iomanip": "cpp",
+        "list": "cpp",
+        "stack": "cpp",
+        "variant": "cpp"
     }
 }

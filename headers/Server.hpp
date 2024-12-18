@@ -3,6 +3,7 @@
 # include "Client.hpp"
 # include "Command.hpp"
 # include "messages.hpp"
+
 # include <netinet/in.h>
 # include <errno.h>
 # include <unistd.h>
@@ -20,23 +21,24 @@
 class	Server
 {
 	public:
+			// Constructor & Destructor
 			Server(int port, std::string const & pass);
 			Server();
 			~Server();
-
+			// Core methods
 			void	findHostname();
 			void	initialize();
 			void	launch();
 
 	private:
-			int	port;
-			std::string	pass;
-			std::string	IP;
+			const int	port;
+			const std::string	pass;
+			std::string	serverIP;
 			std::list<Client>	clients;
 			Command	command; 
 
-			int	head_socket;
-			struct sockaddr_in address;
-			int	addrlen;
+			int	serverSocket;
+			struct sockaddr_in serverAddress;
+			int	addressLength;
 			fd_set	readfds;
 };
