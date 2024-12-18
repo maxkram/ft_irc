@@ -1,5 +1,18 @@
 #include "../headers/Server.hpp"
 
+void printWelcomeBanner()
+{
+    std::cout << "\033[1;36m";
+    std::cout << "  _  _     ____  	\n";
+    std::cout << " | || |   |___ \\ \n";
+    std::cout << " | || |_    __) |	\n";
+    std::cout << " |__   _|  / __/ 	\n";
+    std::cout << "    |_|   |_____|	\n";
+	std::cout << "					\n";
+    std::cout << "	Joyeux noel!	\n";
+    std::cout << "\033[0m";
+}
+
 void	ft_irc(Server & server)
 {
 	try
@@ -16,7 +29,7 @@ void	ft_irc(Server & server)
 int	main(int ac, char **av)
 {
 	int	port = 0;
-
+	printWelcomeBanner();
 	if (ac == 3)
 	{
 		port = atoi(av[1]);
