@@ -108,8 +108,9 @@ public:
     void	USER(std::string &message, int fd);
     
     void	    QUIT(std::string message, int fd);
-    std::string	quitReason(std::string message);
-    void	    quitReason2(std::string message, std::string str, std::string &reason);
+    std::string quitReason(const std::string &message);
+    // std::string	quitReason(std::string message);
+    // void	    quitReason2(std::string message, std::string str, std::string &reason);
     
     void	PING(std::string &message, int fd);
     

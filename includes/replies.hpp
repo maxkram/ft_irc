@@ -6,7 +6,8 @@
 #define ERR_ALREADYREGISTERED(client) (": 462 " + client + " :You may not reregister\r\n")
 #define ERR_NICKNAMEINUSE(client, nick) (": 433 " + client + " " + nick + " :Nickname is already in use\r\n")
 #define ERR_ERRONEUSNICKNAME(client) (": 432 " + client + " :Erroneus nickname\r\n")
-#define ERR_NOTREGISTERED(client) (": 451 " + client + " :You have not registered!\r\n")
+// #define ERR_NOTREGISTERED(client) (": 451 " + client + " :You have not registered!\r\n")
+#define ERR_NOTREGISTERED(client) (std::string(": 451 ") + client + " :You have not registered!\r\n")
 #define ERR_NOSUCHCHANNEL(client, channel) (": 403 " + client + " " + channel + " :No such channel\r\n")
 #define ERR_NOTOPERATOR(client, channel) (": 482 " + client + " #" + channel + " :You're not a channel operator\r\n")
 #define ERR_UNKNOWNMODE(nickname, channel, mode) ": 472 " + nickname + " #" + channel + " " + mode + " :is not a recognised channel mode\r\n"
