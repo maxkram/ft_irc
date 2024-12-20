@@ -1,51 +1,96 @@
-#include "../../headers/Command.hpp"
+#include "../../includes/server.hpp"
 
-void Command::quit(std::vector<std::string> cmds, Client &client)
+// Fonction pour traiter la commande QUIT (déconnexion d'un utilisateur)
+void Server::QUIT(std::string message, int fd)
 {
-	if (client.isRegistered())
-	{
-		if (cmds.size() > 1 && client.isConnected())
-		{
-			if (cmds[1][0] == ':')
-				cmds[1].erase(0, 1);
-			sendConfirm(client, cmds[0], cmds[1]);
-		}
-		else if (client.isConnected())
-			sendConfirm(client, cmds[0], client.getNick());
-		std::vector<std::string>::iterator it = client.getChannels().begin();
-		std::map<std::string, Channel>::iterator	itMap;
-		for (; it != client.getChannels().end(); it++)
-		{
-			itMap = chanMap.find(*it);
-			itMap->second.deleteClient(&client);
-			if(itMap->second.isChannelEmpty())
-				chanMap.erase(itMap);
-		}
-		std::list<Client>::iterator itClient = clients.begin();
-		for (; itClient != clients.end(); itClient++)
-		{
-			if (&(*itClient) != &client)
-			{
-				for (it = client.getChannels().begin(); it != client.getChannels().end(); it++)
-				{
-					if (itClient->isInChannel(*it))
-					{
-						if (cmds.size() > 1)
-						{
-							if (cmds[1][0] == ':')
-								cmds[1].erase(0, 1);
-							sendConfirmTo(*itClient, client, cmds[0], cmds[1]);
-						}
-						else
-							sendConfirmTo(*itClient, client, cmds[0], client.getNick());
-						break;
-					}
-				}
-			}
-		}
-	}
-	if (client.isConnected())
-		closeLink(client, "Closing Link", client.getIP() + " (Client Quit)");
-	close(client.getSocket());
-	client.setMarkedForDeletion(true);
+    std::string reason;
+    std::string reply;
+
+    reason = quitReason(message);
+    for (size_t i = 0; i < channel.size(); i++)
+    {
+        if (channel[i].getUserByFd(fd))
+        {
+            channel[i].removeUserByFd(fd);
+            if (channel[i].getUserCount() == 0)
+                channel.erase(channel.begin() + i);
+            else
+            {
+                reply = ":" + getClientByFd(fd)->getNickname() + "!~" + getClientByFd(fd)->getUser() + "@localhost QUIT " + reason + "\r\n";
+                channel[i].broadcastMessage(reply);
+            }
+        }
+        else if (channel[i].getOperatorByFd(fd))
+        {
+            channel[i].removeOperatorByFd(fd);
+            if (channel[i].getUserCount() == 0)
+                channel.erase(channel.begin() + i);
+            else
+            {
+                if (!channel[i].hasOperators())
+                {
+                    channel[i].promoteFirstUserToOperator();
+                }
+                reply = ":" + getClientByFd(fd)->getNickname() + "!~" + getClientByFd(fd)->getUser() + "@localhost QUIT " + reason + "\r\n";
+                channel[i].broadcastMessage(reply);
+            }
+        }
+    }
+    notifyUsers(": leaving Server\r\n", fd);
+    std::cout << "FD[" << fd << "] disconnected" << std::endl;
+    clearChannel(fd);
+    removeClient(fd);
+    removeFd(fd);
+    close(fd);
+}
+
+// Cette fonction analyse et formate la raison pour laquelle un utilisateur se déconnecte
+std::string Server::quitReason(std::string message)
+{
+    std::istringstream stm(message);
+    std::string reason;
+    std::string str;
+
+    stm >> str;
+    quitReason2(message, str, reason);
+    if (reason.empty())
+        return (std::string("Quit"));
+    if (reason[0] != ':')
+    {
+        for (size_t i = 0; i < reason.size(); i++)
+        {
+            if (reason[i] == ' ') 
+            {
+                reason.erase(i, reason.size() - i);
+                break;
+            }
+        }
+        reason.insert(reason.begin(), ':');
+    }
+    return reason;
+}
+
+// Cette fonction extrait la raison de déconnexion d'un message et la formate correctement
+void Server::quitReason2(std::string message, std::string str, std::string &reason)
+{
+    size_t i = 0;
+
+    for (; i < message.size(); i++)
+    {
+        if (message[i] != ' ')
+        {
+            std::string tmp;
+            for (; i < message.size() && message[i] != ' '; i++)
+                tmp += message[i];
+            if (tmp == str)
+                break;
+            else
+                tmp.clear();
+        }
+    }
+    if (i < message.size())
+        reason = message.substr(i);
+    i = 0;
+    for (; i < reason.size() && reason[i] == ' '; i++);
+    reason = reason.substr(i);
 }

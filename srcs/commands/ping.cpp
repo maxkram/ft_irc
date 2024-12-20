@@ -1,13 +1,17 @@
-#include "../../headers/Command.hpp"
+#include "../../includes/server.hpp"
 
-void	Command::ping(std::vector<std::string> cmds, Client & client)
+// Fonction pour gérer la commande PING
+void Server::PING(std::string &message, int fd)
 {
-    // Check if enough parameters are provided
-    if (cmds.size() == 1)
+    User *user;
+    std::vector<std::string> param;
+
+    user = getClientByFd(fd);
+    param = extractParams(message);
+    if (user && param.size() < 2)
     {
-        sendMessage(client, "461", cmds[0], ERR_NEEDMOREPARAMS);
+        notifyUsers(ERR_NOTENOUGHPARAMETERS(user->getNickname()), fd);
         return;
     }
-    // Send the PONG response
-    sendSpecConfirm(client, IP, "PONG", cmds[1]);
+    notifyUsers(RPL_PONG, fd);
 }

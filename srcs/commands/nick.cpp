@@ -1,43 +1,111 @@
-#include "../../headers/Command.hpp"
+#include "../../includes/server.hpp"
 
-void	Command::nick(std::vector<std::string> cmds, Client & client)
+
+// Fonction pour gérer la commande NICK (changement de nickname)
+void Server::NICK(std::string message, int fd)
 {
-	if (cmds.size() == 1)
-	{
-		sendMessage(client, "431", "", ERR_NONICKNAMEGIVEN);
-		return ;
-	}
-	if (cmds[1].length() > 8)
-		cmds[1].resize(9);
-	std::list<Client>::iterator	it = clients.begin();
-	for(; it != clients.end(); it++)
-		if (cmds[1] == it->getNick() && &(*it) != &client)
-		{
-			sendMessage(client, "433", cmds[1], ERR_NICKNAMEINUSE);
-			return ;
-		}
-	if ((!isalpha(cmds[1][0]) && !isSpecialChar(cmds[1][0])))
-	{
-		sendMessage(client, "432", cmds[1], ERR_ERRONEUSNICKNAME);
-		return;
-	}
-	for (size_t i = 1; i < cmds[1].length(); i++)
-	{
-		if (!isalpha(cmds[1][i]) && !isSpecialChar(cmds[1][i]) && !isdigit(cmds[1][i]))
-		{
-			sendMessage(client, "432", cmds[1], ERR_ERRONEUSNICKNAME);
-			return;
-		}
-	}
-	if (client.getNick() != cmds[1])
-	{
-		if (client.isRegistered())
-			sendConfirm(client, cmds[0], cmds[1]);
-		client.setNick(cmds[1]);
-	}
-	if (!client.isRegistered())
-	{
-		client.setNicked(true);
-		registerClient(client);
-	}
+    User *user;
+    std::string old;
+    
+    user = getClientByFd(fd);
+    std::string::iterator it = message.begin();
+    while (it != message.end() && (*it == ' ' || *it == '\t' || *it == '\v'))
+        ++it;
+    if (it != message.end() && *it == ':')
+        ++it;
+    message = std::string(it + 5, message.end());
+    if (message.empty())
+    {
+        notifyUsers(ERR_NOTENOUGHPARAMETERS(std::string("*")), fd);
+        return;
+    }
+    if (isNicknameUsed(message) && user->getNickname() != message)
+    {
+        if (user->getNickname().empty())
+            notifyUsers(ERR_NICKNAMEINUSE(std::string(message), std::string(message)), fd);
+        else
+            notifyUsers(ERR_NICKNAMEINUSE(user->getNickname(), std::string(message)), fd);
+        return;
+    }
+    if (!validNickname(message))
+    {
+        notifyUsers(ERR_ERRONEUSNICKNAME(std::string(message)), fd);
+        return;
+    }
+    else
+    {
+        if (user && user->isRegistered())
+        {
+            old = user->getNickname();
+            user->setNickname(message);
+            updateNicknameChannel(old, message);
+            if (!old.empty() && old != message)
+            {
+                if (old == "*" && !user->getUser().empty())
+                {
+                    user->setConnected(true);
+                    notifyUsers(RPL_WELCOME(user->getNickname()), fd);
+                    notifyUsers(RPL_CHANGENICK(user->getNickname(), message), fd);
+                }
+                else
+                    notifyUsers(RPL_CHANGENICK(old, message), fd);
+                return;
+            }
+        }
+        else if (user && !user->isRegistered())
+            notifyUsers(ERR_NOTREGISTERED(message), fd);
+    }
+    if (user && user->isRegistered() && !user->getUser().empty() && !user->getNickname().empty() && user->getNickname() != "*" && !user->isConnected())
+    {
+        user->setConnected(true);
+        notifyUsers(RPL_WELCOME(user->getNickname()), fd);
+    }
+}
+
+// Fonction pour mettre à jour le nickname de l'utilisateur dans tous les canaux où il est présent
+void Server::updateNicknameChannel(std::string old, std::string n_nick)
+{
+    for (std::vector<Channel>::iterator ch = channel.begin(); ch < channel.end(); ch++)
+    {
+        for (std::vector<User>::iterator us = (*ch).getUsers().begin(); us < (*ch).getUsers().end(); us++)
+        {
+            if (us->getNickname() == old)
+            {
+                us->setNickname(n_nick);
+                return;
+            }
+        }
+        for (std::vector<User>::iterator us = (*ch).getOperators().begin(); us < (*ch).getOperators().end(); us++)
+        {
+            if (us->getNickname() == old)
+            {
+                us->setNickname(n_nick);
+                return;
+            }        
+        }
+    }
+}
+
+// Fonction pour vérifier si le nickname est déjà utilisé par un autre utilisateur
+bool Server::isNicknameUsed(std::string &nickname)
+{
+    for (size_t i = 0; i < this->sock_user.size(); i++)
+    {
+        if (this->sock_user[i].getNickname() == nickname)
+            return true;
+    }
+    return false;
+}
+
+// Fonction pour vérifier si le nickname est valide
+bool Server::validNickname(std::string &nickname)
+{
+    if (nickname[0] == '&' || nickname[0] == '#' || nickname[0] == ':')
+        return false;
+    for (size_t i = 1; i < nickname.size(); i++)
+    {
+        if (!std::isalnum(nickname[i]) && (std::string("-_[]{}\\`|").find(nickname[i]) == std::string::npos))
+            return false;
+    }
+    return true;
 }

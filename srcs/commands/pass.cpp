@@ -1,16 +1,32 @@
-#include "../../headers/Command.hpp"
+#include "../../includes/server.hpp"
 
-void	Command::pass(std::vector<std::string> cmds, Client & client)
+// Fonction pour gérer la commande PASS
+void Server::PASS(std::string message, int fd)
 {
-	if (cmds.size() == 1)
-	{
-		sendMessage(client, "461", "", ERR_NEEDMOREPARAMS);
-		return ;
-	}
-	if (client.isRegistered())
-	{
-		sendMessage(client, "462", "", ERR_ALREADYREGISTRED);
-		return;
-	}
-	client.setPass(cmds[1]);
+    User *user;
+    std::string pass;
+
+    user = getClientByFd(fd);
+    std::string::iterator it = message.begin();
+    while (it != message.end() && (*it == ' ' || *it == '\t' || *it == '\v'))
+        ++it;
+    if (it != message.end() && *it == ':')
+        ++it;
+    message = std::string(it + 5, message.end());
+    if (message.empty())
+    {
+        notifyUsers(ERR_NOTENOUGHPARAMETERS(std::string("*")), fd);
+    }
+    else if (!user->isRegistered())
+    {
+        pass = message;
+        if (pass == password)
+            user->setRegistered(true);
+        else
+            notifyUsers(ERR_PASSWORDINCORECT(std::string("*")), fd);
+    }
+    else
+    {
+        notifyUsers(ERR_ALREADYREGISTERED(getClientByFd(fd)->getNickname()), fd);
+    }
 }

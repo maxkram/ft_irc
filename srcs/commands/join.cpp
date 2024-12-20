@@ -1,93 +1,199 @@
-#include "../../headers/Command.hpp"
+#include "../../includes/server.hpp"
 
-void	Command::join(std::vector<std::string> cmds, Client & client)
+// Méthode pour gérer la commande JOIN
+void Server::JOIN(std::string message, int fd)
 {
-	// Step 1: Client registration check
-	if (!client.isRegistered())
-	{
-		sendMessage(client, "451", "", ERR_NOTREGISTERED);
-		return ;
-	}
-	// Step 2: Check for sufficient parameters
-	if (cmds.size() < 2)
-	{
-		sendMessage(client, "461", cmds[0], ERR_NEEDMOREPARAMS);
-		return ;
-	}
-	// Step 3: Handle "JOIN 0" (leave all channels)
-	if (cmds[1] == "0")
-	{
-		std::vector<std::string>::iterator	it = client.getChannels().begin();
-		std::vector<std::string>	partCmd;
-		partCmd.push_back("PART ");
-		partCmd.push_back("");
-		for (;it != client.getChannels().end(); it++)
-			partCmd[1].append(*it + ",");
-		part(partCmd, client);
-		return;
-	}
-	// Step 4: Split channels and keys
-	std::vector<std::string>	channels = splitString(cmds[1], ",");
-	std::vector<std::string>	keys;
-	std::vector<std::string>	names;
-	names.push_back("names");
-	names.push_back(cmds[1]);
-	if (cmds.size() > 2)
-		keys = splitString(cmds[2], ",");
-	std::vector<std::string>::iterator	it = channels.begin();
-	std::vector<std::string>::iterator	itKey = keys.begin();
-	std::map<std::string, Channel>::iterator	itMap;
-	for(; it != channels.end(); it++)
-	{
-		// Step 5: Channel name validation
-		if (it->length() > 50 || (*it)[0] != '#')
-			sendMessage(client, "403", cmds[0], *it + ERR_NOSUCHCHANNEL);
-		// Step 6: Create channel if it doesn't exist
-		else if ((itMap = chanMap.find(*it)) == chanMap.end())
-		{
-			itMap =	chanMap.insert(std::pair<std::string, Channel>(*it, Channel())).first;
-			// Set channel operator and optional password
-			itMap->second.addChannelOperator(&client);
-			if (itKey != keys.end())
-				itMap->second.setPassword(*itKey);
-			client.getChannels().push_back(*it);
-			sendConfirm(client, cmds[0] + " " + *it, "");
-			sendMessage(client, "324", cmds[1], getUsedModes(cmds[1]));
-			Command::names(names, client);
-			itMap->second.sendChannelMessage(client, cmds[0] + " " + *it, "");
-		}
-		else
-		{
-			// Step 7: Verify access to existing channel
-			if (!client.isInChannel(*it))
-			{
-				if (!itMap->second.getPassword().empty() && (itKey == keys.end() || itMap->second.getPassword() != *itKey))
-				{
-					sendMessage(client, "475", *it + ERR_BADCHANNELKEY, "");
-				}
-				else if (itMap->second.isInviteEnabled() && !itMap->second.isClientInvited(client))
-				{
-					sendMessage(client, "473", *it + ERR_INVITEONLYCHAN, "");
-				}
-				else
-				{
-					// Add client to the channel
-					itMap->second.addClient(&client);
-					client.getChannels().push_back(*it);
-					sendConfirm(client, cmds[0] + " " + *it, "");
-					sendMessage(client, "324", cmds[1], getUsedModes(cmds[1]));
-					Command::names(names, client);
-					// Send channel topic if it exists
-					if (!itMap->second.getTopic().empty())
-					{
-						sendMessage(client, "332", *it, itMap->second.getTopic());
-						sendMessage(client, "333", *it, itMap->second.getTopicAuthor());
-					}
-					itMap->second.sendChannelMessage(client, cmds[0] + " " + *it, "");
-				}
-			}
-		}
-		if (itKey != keys.end())
-			itKey++;
-	}
+    std::vector<std::pair<std::string, std::string> > param;
+    bool flag;
+
+    if (!splitJoinParams(param, message, fd))
+    {
+        notifyClient3(461, getClientByFd(fd)->getNickname(), getClientByFd(fd)->getFduser(), " :Not enough parameters\r\n");
+        return;
+    }
+    if (param.size() > 20)
+    {
+        notifyClient3(407, getClientByFd(fd)->getNickname(), getClientByFd(fd)->getFduser(), " :Too many channels\r\n");
+        return;
+    }
+    for (size_t i = 0; i < param.size(); i++)
+    {
+        flag = false;
+        for (size_t j = 0; j < this->channel.size(); j++)
+        {
+            if (this->channel[j].getChannelName() == param[i].first)
+            {
+                addClientToExistChannel(param, i, j, fd);
+                flag = true;
+                break;
+            }
+        }
+        if (!flag)
+            createAndAddToNewChannel(param, i, fd);
+    }
+}
+
+// Méthode pour diviser le message JOIN en noms de canaux et clés
+int Server::splitJoinParams(std::vector<std::pair<std::string, std::string> > &param, std::string message, int fd)
+{
+    std::vector<std::string> vec;
+    std::istringstream ss(message);
+    std::string line;
+    std::string channel;
+    std::string key;
+    std::string str;
+
+    while (std::getline(ss, line, ' '))
+        vec.push_back(line);
+
+    if (vec.size() < 2)
+    {
+        param.clear();
+        return 0;
+    }
+    vec.erase(vec.begin());
+    channel = vec[0];
+    vec.erase(vec.begin());
+    if (!vec.empty())
+    {
+        key = vec[0];
+        vec.clear();
+    }
+    for (size_t i = 0; i < channel.size(); i++)
+    {
+        if (channel[i] == ',')
+        {
+            param.push_back(std::make_pair(str, ""));
+            str.clear();
+        }
+        else
+            str += channel[i];
+    }
+    param.push_back(std::make_pair(str, ""));
+    if (!key.empty())
+    {
+        size_t j = 0;
+        str.clear();
+        for (size_t i = 0; i < key.size(); i++)
+        {
+            if (key[i] == ',')
+            {
+                param[j].second = str;
+                j++;
+                str.clear();
+            }
+            else
+                str += key[i];
+        }
+        param[j].second = str;
+    }
+    for (size_t i = 0; i < param.size(); i++)
+    {
+        if (param[i].first.empty())
+            param.erase(param.begin() + i--);
+    }
+    for (size_t i = 0; i < param.size(); i++)
+    {
+        if (*(param[i].first.begin()) != '#')
+        {
+            notifyClient2(403, getClientByFd(fd)->getNickname(), param[i].first, getClientByFd(fd)->getFduser(), " :No such channel\r\n");
+            param.erase(param.begin() + i--);
+        }
+        else
+            param[i].first.erase(param[i].first.begin());
+    }
+    return 1;
+}
+
+// Ajouter un utilisateur dans un canal existant
+void Server::addClientToExistChannel(std::vector<std::pair<std::string, std::string> > &param, int i, int j, int fd)
+{
+    if (this->channel[j].getFindUserByName(getClientByFd(fd)->getNickname()))
+        return;
+    if (channelUserCount(getClientByFd(fd)->getNickname()) >= 20)
+    {
+        notifyClient3(405, getClientByFd(fd)->getNickname(), getClientByFd(fd)->getFduser(), " :You have joined too many channels\r\n");
+        return;
+    }
+    if (!this->channel[j].getChannelPassword().empty() && this->channel[j].getChannelPassword() != param[i].second)
+    {
+        if (!isUserInvited(getClientByFd(fd), param[i].first, 0))
+        {
+            notifyClient2(475, getClientByFd(fd)->getNickname(), "#" + param[i].first, getClientByFd(fd)->getFduser(), " :Cannot join channel (+k) - bad key\r\n");
+            return;
+        }
+    }
+    if (this->channel[j].getInviteOnlyStatus())
+    {
+        if (!isUserInvited(getClientByFd(fd), param[i].first, 1))
+        {
+            notifyClient2(473, getClientByFd(fd)->getNickname(), "#" + param[i].first, getClientByFd(fd)->getFduser(), " :Cannot join channel (+i)\r\n");
+            return;
+        }
+    }
+    if (this->channel[j].getUserLimit() && this->channel[j].getUserCount() >= (size_t)this->channel[j].getUserLimit())
+    {
+        notifyClient2(471, getClientByFd(fd)->getNickname(), "#" + param[i].first, getClientByFd(fd)->getFduser(), " :Cannot join channel (+l)\r\n");
+        return;
+    }
+    User *user = getClientByFd(fd);
+    this->channel[j].addUser(*user);
+    if (channel[j].getTopicName().empty())
+        notifyUsers(RPL_JOIN(getClientByFd(fd)->getHostname(), getClientByFd(fd)->getIp(), param[i].first) +
+                    RPL_NAMREPLY(getClientByFd(fd)->getNickname(), channel[j].getChannelName(), channel[j].getUserList()) +
+                    RPL_ENDOFNAMES(getClientByFd(fd)->getNickname(), channel[j].getChannelName()), fd);
+    else
+        notifyUsers(RPL_JOIN(getClientByFd(fd)->getHostname(), getClientByFd(fd)->getIp(), param[i].first) +
+                    RPL_TOPIC(getClientByFd(fd)->getNickname(), channel[j].getChannelName(), channel[j].getTopicName()) +
+                    RPL_NAMREPLY(getClientByFd(fd)->getNickname(), channel[j].getChannelName(), channel[j].getUserList()) +
+                    RPL_ENDOFNAMES(getClientByFd(fd)->getNickname(), channel[j].getChannelName()), fd);
+    channel[j].broadcastMessage2(RPL_JOIN(getClientByFd(fd)->getHostname(), getClientByFd(fd)->getIp(), param[i].first), fd);
+}
+
+// Ajouter un utilisateur dans un nouveau canal qu'on va créer
+void Server::createAndAddToNewChannel(std::vector<std::pair<std::string, std::string> > &param, int i, int fd)
+{
+    User *user = getClientByFd(fd);
+    Channel newChannel;
+
+    if (channelUserCount(getClientByFd(fd)->getNickname()) >= 20)
+    {
+        notifyClient3(405, getClientByFd(fd)->getNickname(), getClientByFd(fd)->getFduser(), " :You have joined too many channels\r\n");
+        return;
+    }
+    newChannel.setChannelName(param[i].first);
+    user->setChannelFounder(true);
+    newChannel.addOperatorOnChannel(*user);
+    if (!user->isOperator())
+        user->setOperator(true);
+    newChannel.setCreationDate();
+    this->channel.push_back(newChannel);
+    notifyUsers(RPL_JOIN(getClientByFd(fd)->getHostname(), getClientByFd(fd)->getIp(), newChannel.getChannelName()) +
+                RPL_NAMREPLY(getClientByFd(fd)->getNickname(), newChannel.getChannelName(), newChannel.getUserList()) +
+                RPL_ENDOFNAMES(getClientByFd(fd)->getNickname(), newChannel.getChannelName()), fd);
+}
+
+// Compter le nombre de canaux dont l'utilisateur est membre
+int Server::channelUserCount(std::string user)
+{
+    int count = 0;
+
+    for (size_t i = 0; i < this->channel.size(); i++)
+    {
+        if (this->channel[i].getFindUserByName(user))
+            count++;
+    }
+    return count;
+}
+
+// Vérifie si l'utilisateur a été invité à rejoindre un canal
+bool Server::isUserInvited(User *user, std::string channel, int flag)
+{
+    if (user->isInvited(channel))
+    {
+        if (flag == 1)
+            user->removeInvitation(channel);
+        return true;
+    }
+    return false;
 }

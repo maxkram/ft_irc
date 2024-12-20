@@ -1,279 +1,324 @@
-#include "../../headers/Command.hpp"
+#include "../../includes/server.hpp"
 
-void Command::mode(std::vector<std::string> cmds, Client & client)
+// Méthode pour gérer la commande MODE pour les canaux
+void Server::MODE_CHANNEL(std::string &message, int fd)
 {
-    int error_nbr = 0;
-    int sign = '+';
-    if (!client.isRegistered())
+    User *user;
+    Channel *chan;
+    char addminus;
+    size_t nonspace;
+    std::string channelname;
+    std::string modestring;
+    std::stringstream ssmode;
+    std::string param;
+    std::string arg;
+    std::vector<std::string> paramsplit;
+
+    addminus = '\0';
+    arg.clear();
+    modestring.clear();
+    user = getClientByFd(fd);
+    nonspace = message.find_first_not_of("MODEmode \t\v");
+    if (nonspace != std::string::npos)
+        message = message.substr(nonspace);
+    else
     {
-        sendMessage(client, "451", "", ERR_NOTREGISTERED);
+        notifyUsers(ERR_NOTENOUGHPARAMETERS(user->getNickname()), fd);
         return;
     }
-    if (cmds.size() == 1)
+    parseChannelMode(message, channelname, modestring, param);
+    paramsplit = splitChannelMode(param);
+    chan = getChannel(channelname.substr(1));
+
+    if (channelname[0] != '#' || !chan)
     {
-        sendMessage(client, "461", cmds[0], ERR_NEEDMOREPARAMS);
+        notifyUsers(ERR_NOSUCHCHANNEL(user->getUser(), channelname), fd);
         return;
     }
-    if (cmds.size() == 2)
+    else if (!chan->getUserByFd(fd) && !chan->getOperatorByFd(fd))
     {
-        std::time_t result = std::time(nullptr);
-        std::map<std::string, Channel>::iterator    itMap = chanMap.begin();    
-        std::list<Client>::iterator	it = clients.begin();
-        if (cmds[1][0] == '#')
+        notifyClient2(442, getClientByFd(fd)->getNickname(), channelname, getClientByFd(fd)->getFduser(), " :You're not on that channel\r\n");
+        return;
+    }
+    else if (modestring.empty())
+    {
+        notifyUsers(RPL_CHANNELMODE(user->getNickname(), chan->getChannelName(), chan->getChannelModes()) + \
+                    RPL_CREATIONTIME(user->getNickname(), chan->getChannelName(), chan->getCreationDate()), fd);
+        return;
+    }
+    else if (!chan->getOperatorByFd(fd))
+    {
+        notifyUsers(ERR_NOTOPERATOR(user->getNickname(), chan->getChannelName()), fd);
+        return;
+    }
+    else if (chan)
+    {
+        size_t pos = 0;
+        for (size_t i = 0; i < modestring.size(); i++)
         {
-            if ((itMap = chanMap.find(cmds[1])) == chanMap.end())
-                sendMessage(client, "403", cmds[1], ERR_NOSUCHCHANNEL);
+            if (modestring[i] == '+' || modestring[i] == '-')
+                addminus = modestring[i];
             else
             {
-                sendMessage(client, "324", cmds[1], getUsedModes(cmds[1]));
-                sendMessage(client, "333", cmds[1], std::to_string((int)result));
-            }
-        }
-        else
-        {
-            for(; it != clients.end(); it++)
-            {
-                if (it->getNick() == cmds[1])
-                {
-                    if (it->isOperator() == true)
-                        sendMessage(client, "324", "", "+o");
-                    else
-                        sendMessage(client, "324", "", "+");
-                    break;
-                }
-            }
-            if (it == clients.end())
-                sendMessage(client, "403", cmds[1], ERR_NOSUCHCHANNEL);
-        }
-    }
-    else if (cmds[1][0] != '#')
-    {
-        if (cmds[1] != client.getNick())
-        {
-            sendMessage(client, "502", "", ERR_USERSDONTMATCH);
-            return;
-        }
-        if (client.getNick() == cmds[1] || cmds[2][0] == 'b')
-            return;
-        for (size_t i = 0;i < cmds[2].length(); i++)
-        {
-            if (cmds[2][i] == '-')
-                sign = '-';
-            else if (cmds[2][i] == '+')
-                sign = '+';
-            else if (cmds[2][i] == 'o')
-            {
-                if (sign == '-')
-                {    
-                    if(client.isOperator() == true)
-                    {
-                        client.setOperator(false);
-                        sendSpecConfirm(client , client.getNick(), cmds[0], cmds[2]);
-                    }
-                }
-            }
-            else if (error_nbr == 0)
-            {
-                sendMessage(client, "501", "", ERR_UMODEUNKNOWNFLAG);
-                error_nbr++;
-            }
-        }
-    }
-    else if (cmds[1][0] == '#')
-    {
-		std::string	arg("+");
-		std::string	opt;
-		bool	okay = false;
-        std::map<std::string, Channel>::iterator	itMap;
-        if ((itMap = chanMap.find(cmds[1])) != chanMap.end())
-        {
-            if (client.isInChannel(cmds[1]) == true)
-            {
-                if(itMap->second.isChannelOperator(client) == true)
-                {
-                    for (size_t i = 0;i < cmds[2].length(); i++)
-					{
-                        if (cmds[2][0] == 'b' && cmds[2].length() == 1)
-                            return;
-						if (cmds[2][i] != '-' && cmds[2][i] != '+' && cmds[2][i] != 'o' && cmds[2][i] != 'i' && cmds[2][i] != 't' && cmds[2][i] != 'k')
-                        {
-							std::string s;
-							s.push_back(cmds[2][i]);
-                            sendMessage(client, "472", s, ERR_UMODEUNKNOWNFLAG + itMap->first);
-							return ;
-                        }
-					}
-                    for (size_t i = 0;i < cmds[2].length(); i++)
-                    {    
-                        if (cmds[2][i] == '-' && sign != '-')
-						{
-                            sign = '-';
-							arg.append("-");
-						}
-                        else if (cmds[2][i] == '+' && sign != '+')
-						{
-                            sign = '+';
-							arg.append("+");
-						}
-                        else if (cmds[2][i] == 'b')
-                            break;
-                        else if (cmds[2][i] == 'o')
-                        {
-                            if (cmds.size() < 4)
-                            {
-                                sendMessage(client, "461", cmds[0], ERR_NEEDMOREPARAMS);
-								continue ;
-                            }
-                            std::list<Client>::iterator	it = clients.begin();
-                            for (; it != clients.end(); it++)
-                                if (cmds[3] == it->getNick())
-                                    break;
-                            if (it == clients.end())
-                            {
-                                sendMessage(client, "401", "", ERR_NOSUCHNICK);
-								continue ;
-                            }
-                            if (it->isInChannel(cmds[1]) == true)
-                            {                                
-                                if (sign == '-')
-                                {
-                                    if (itMap->second.isChannelOperator(*it) == true)
-                                    {
-                                        itMap->second.deleteChannelOperator(&(*it));
-										itMap->second.addClient(&(*it));
-										arg.append("o");
-										okay = true;
-                                    }
-                                }
-                                else if (sign == '+')
-                                {
-                                    if (itMap->second.isChannelOperator(*it) == false)
-                                    {
-                                        itMap->second.addChannelOperator(&(*it));                                
-										itMap->second.deleteClient(&(*it));
-										arg.append("o");
-										okay = true;
-                                    }
-                                }
-                            }
-                            else
-                            {
-                                sendMessage(client, "442", client.getNick() + " " +  cmds[3] + " " + cmds[1], ERR_USERNOTINCHANNEL);
-								continue ;
-                            }
-                        }
-                        else if (cmds[2][i] == 'i')
-                        {
-                            if (sign == '-')
-                            {
-                                if (itMap->second.isInviteEnabled() == true)
-                                {
-                                    itMap->second.setInviteEnabled(false);
-									arg.append("i");
-									okay = true;
-                                }
-                            }
-                            if (sign == '+')
-                            {                                
-                                if (itMap->second.isInviteEnabled() == false)
-                                {
-                                    itMap->second.setInviteEnabled(true);
-									arg.append("i");
-									okay = true;
-                                }
-                            }
-                        }
-                        else if (cmds[2][i] == 't')
-                        {
-                            if (sign == '-')
-                            {
-                                if (itMap->second.isTopicEnabled() == true)
-                                {
-                                    itMap->second.enableTopic(false);
-									arg.append("t");
-									okay = true;
-                                }
-                            }
-                            else if (sign == '+')
-                            {
-                                if (itMap->second.isTopicEnabled() == false)
-                                {
-                                    itMap->second.enableTopic(true);
-									arg.append("t");
-									okay = true;
-                                }
-                            }
-                        }
-                        else if (cmds[2][i] == 'k')
-                        {
-                            if (sign == '-')
-                            {
-                                if (cmds.size() == 4 && cmds[3] == itMap->second.getPassword())
-                                {
-                                    itMap->second.setPassword("");
-									opt.assign("*");
-									arg.append("k");
-									okay = true;
-                                }
-                            }
-                            else if (sign == '+')
-                            {
-                                if (cmds.size() == 4)
-                                {
-                                    itMap->second.setPassword(cmds[3]);
-									opt.assign(cmds[3]);
-									arg.append("k");
-									okay = true;
-                                }
-                            }
-                        }
-                    }
-					if (okay)
-					{
-						size_t i = 0;
-						while(i < arg.length())
-						{
-							if ((i + 1) != arg.length() && (arg[i + 1] == '-' || arg[i + 1] == '+') && (arg[i] == '-' || arg[i] == '+'))
-								arg.erase(i, 1);
-							else
-								i++;
-						}
-						for (int i = arg.length() - 1; i != 0; i--)
-						{
-							if (arg[i] == '-' || arg[i] == '+')
-								arg.erase(i, 1);
-							else
-								break;
-						}
-						if (opt.empty())
-						{
-							sendConfirm(client , cmds[0] + " " + cmds[1] + " " + arg, "");
-							itMap->second.sendChannelMessage(client, cmds[0] + " " + cmds[1] + " " + arg, "");	
-						}
-						else
-						{
-							sendConfirm(client , cmds[0]  + " " + cmds[1] + " " + arg + " " + opt, "");
-							itMap->second.sendChannelMessage(client, cmds[0] + " " + cmds[1] + " " + arg + " " + opt, "");	
-						}
-					}
-                }
+                if (modestring[i] == 'i')
+                    ssmode << inviteOnly(chan, addminus, ssmode.str());
+                else if (modestring[i] == 't')
+                    ssmode << topicRestriction(chan, addminus, ssmode.str());
+                else if (modestring[i] == 'k')
+                    ssmode << channelPassword(chan, addminus, ssmode.str(), paramsplit, arg, pos, fd);
+                else if (modestring[i] == 'o')
+                    ssmode << operatorPrivilege(chan, addminus, ssmode.str(), paramsplit, arg, pos, fd);
+                else if (modestring[i] == 'l')
+                    ssmode << setUserLimit(chan, addminus, ssmode.str(), paramsplit, arg, pos, fd);
                 else
-                {
-                    sendMessage(client, "482", cmds[1], ERR_CHANOPRIVSNEEDED);
-                    return;
-                }
+                    notifyUsers(ERR_UNKNOWNMODE(user->getNickname(), chan->getChannelName(), modestring[i]), fd);
             }
-            else if (client.isInChannel(cmds[1]) == false)
-            {
-                sendMessage(client, "482", cmds[1], ERR_CHANOPRIVSNEEDED);
-                return;
-            }
-        }
-        else
-        {
-            sendMessage(client, "482", cmds[1], ERR_CHANOPRIVSNEEDED);
-            return;
         }
     }
-    return;
+
+    std::string chain = ssmode.str();
+    if (chain.empty())
+        return;
+    chan->broadcastMessage(RPL_CHANGEMODE(user->getHostname(), chan->getChannelName(), ssmode.str(), arg));
+}
+
+// Méthode pour stocker le nom du canal, les modes spécifiés et les paramètres additionnels
+void Server::parseChannelMode(std::string message, std::string &channelname, std::string &modestring, std::string &param)
+{
+    std::istringstream ss(message);
+    size_t nonspace;
+
+    ss >> channelname;
+    ss >> modestring;
+    nonspace = message.find_first_not_of(channelname + modestring + " \t\v");
+    if (nonspace != std::string::npos)
+        param = message.substr(nonspace);
+}
+
+// Méthode pour découper les paramètres extraits avec ',' comme délimiteur
+// et stocker ensuite chaque partie découpée dans paramsplit
+std::vector<std::string> Server::splitChannelMode(std::string param)
+{
+    std::vector<std::string> paramsplit;
+    std::string line;
+    std::istringstream ss(param);
+
+    if (!param.empty() && param[0] == ':')
+        param.erase(param.begin());
+    while (std::getline(ss, line, ','))
+    {
+        paramsplit.push_back(line);
+        line.clear();
+    }
+    return paramsplit;
+}
+
+// Fonction pour mettre à jour les opérateurs + ou - dans la chaîne de modes
+std::string Server::updateMode(std::string ssmode, char addminus, char mode)
+{
+    std::stringstream ss;
+
+    ss.clear();
+    char nul = '\0';
+    for (size_t i = 0; i < ssmode.size(); i++)
+    {
+        if (ssmode[i] == '+' || ssmode[i] == '-')
+            nul = ssmode[i];
+    }
+    if (nul != addminus)
+        ss << addminus << mode;
+    else
+        ss << mode;
+    return ss.str();
+}
+
+// Fonction pour gérer le mode invitation-only ('i') d'un canal
+std::string Server::inviteOnly(Channel *channel, char addminus, std::string ssmode)
+{
+    std::string str;
+
+    str.clear();
+    if (addminus == '+' && !channel->getChannelModeOption(0))
+    {
+        channel->setChannelMode(0, true);
+        channel->setInviteOnlyStatus(1);
+        str = updateMode(ssmode, addminus, 'i');
+    }
+    else if (addminus == '-' && channel->getChannelModeOption(0))
+    {
+        channel->setChannelMode(0, false);
+        channel->setInviteOnlyStatus(0);
+        str = updateMode(ssmode, addminus, 'i');
+    }
+    return str;
+}
+
+// Fonction pour gérer le mode restreint sur le sujet ('t') d'un canal
+std::string Server::topicRestriction(Channel *channel, char addminus, std::string ssmode)
+{
+    std::string str;
+
+    str.clear();
+    if (addminus == '+' && !channel->getChannelModeOption(1))
+    {
+        channel->setChannelMode(1, true);
+        channel->setTopicRestriction(true);
+        str = updateMode(ssmode, addminus, 't');
+    }
+    else if (addminus == '-' && channel->getChannelModeOption(1))
+    {
+        channel->setChannelMode(1, false);
+        channel->setTopicRestriction(false);
+        str = updateMode(ssmode, addminus, 't');
+    }
+    return str;
+}
+
+// Fonction pour gérer le mode mot de passe ('k') d'un canal
+std::string Server::channelPassword(Channel *channel, char addminus, std::string ssmode, std::vector<std::string> paramsplit, std::string &arg, size_t &pos, int fd)
+{
+    std::string str;
+    std::string password;
+
+    str.clear();
+    password.clear();
+    if (paramsplit.size() > pos)
+    {
+        password = paramsplit[pos++];
+    }
+    else
+    {
+        notifyUsers(ERR_NEEDMODEPARAM(channel->getChannelName(), std::string("(k)")), fd);
+        return str;
+    }
+    if (!isValidChannelPassword(password))
+    {
+        notifyUsers(ERR_NEEDMODEPARAM(channel->getChannelName(), std::string("(k)")), fd);
+        return str;
+    }
+    if (addminus == '+')
+    {
+        channel->setChannelMode(2, true);
+        channel->setChannelPassword(password);
+        if (!arg.empty())
+            arg += " ";
+        arg += password;
+        str = updateMode(ssmode, addminus, 'k');
+    }
+    else if (addminus == '-' && channel->getChannelModeOption(2))
+    {
+        if (password == channel->getChannelPassword())
+        {
+            channel->setChannelMode(2, false);
+            channel->setChannelPassword("");
+            str = updateMode(ssmode, addminus, 'k');
+        }
+        else
+            notifyUsers(ERR_KEYEXIST(channel->getChannelName()), fd);
+    }
+    return str;
+}
+
+// Vérifie si le mot de passe de mode est valide
+// Un mot de passe est valide s'il n'est pas vide et ne contient que des caractères alphanumériques ou des underscores
+bool Server::isValidChannelPassword(std::string password)
+{
+    if (password.empty())
+        return false;
+    for (size_t i = 0; i < password.size(); i++)
+    {
+        if (!std::isalnum(password[i]) && password[i] != '_')
+            return false;
+    }
+    return true;
+}
+
+
+// Gère le mode opérateur de canal ('o')
+std::string Server::operatorPrivilege(Channel *channel, char addminus, std::string ssmode, std::vector<std::string> paramsplit, std::string &arg, size_t &pos, int fd)
+{
+    std::string str;
+    std::string user;
+
+    str.clear();
+    user.clear();
+    if (paramsplit.size() > pos)
+        user = paramsplit[pos++];
+    else
+    {
+        notifyUsers(ERR_NEEDMODEPARAM(channel->getChannelName(), std::string("(o)")), fd);
+        return str;
+    }
+    if (!channel->isUserInChannel(user))
+    {
+        notifyUsers(ERR_NOSUCHNICKCHAN(channel->getChannelName(), user), fd);
+        return str;
+    }
+    if (addminus == '+')
+    {
+        channel->setChannelMode(3, true);
+        if (channel->promoteUserToOperator(user))
+        {
+            str = updateMode(ssmode, addminus, 'o');
+            if (!arg.empty())
+                arg += " ";
+            arg += user;
+        }
+    }
+    else if (addminus == '-')
+    {
+        channel->setChannelMode(3, false);
+        if (channel->demoteOperatorToUser(user))
+        {
+            str = updateMode(ssmode, addminus, 'o');
+            if (!arg.empty())
+                arg += " ";
+            arg += user;
+        }
+    }
+    return str;
+}
+
+// Vérifie si la limite est valide
+// Une limite est valide si elle ne contient que des chiffres et est supérieure à 0
+bool Server::isValidUserLimit(std::string &limit)
+{
+    return (!(limit.find_first_not_of("0123456789") != std::string::npos) && std::atoi(limit.c_str()) > 0);
+}
+
+// Gère le mode de limitation du nombre d'utilisateurs ('l')
+std::string Server::setUserLimit(Channel *channel, char addminus, std::string ssmode, std::vector<std::string> paramsplit, std::string &arg, size_t &pos, int fd)
+{
+    std::string str;
+    std::string limit;
+
+    str.clear();
+    limit.clear();
+    if (addminus == '+')
+    {
+        if (paramsplit.size() > pos)
+        {
+            limit += paramsplit[pos++];
+            if (isValidUserLimit(limit))
+            {
+                channel->setChannelMode(4, true);
+                channel->setUserLimit(std::atoi(limit.c_str()));
+                if (!arg.empty())
+                    arg += " ";
+                arg += limit;
+                str = updateMode(ssmode, addminus, 'l');
+            }
+            else
+                notifyUsers(ERR_INVALIDMODEPARAM(channel->getChannelName(), std::string("(l)")), fd);
+        }
+        else
+            notifyUsers(ERR_NEEDMODEPARAM(channel->getChannelName(), std::string("(l)")), fd);
+    }
+    else if (addminus == '-' && channel->getChannelModeOption(4))
+    {
+        channel->setChannelMode(4, false);
+        channel->setUserLimit(0);
+        str = updateMode(ssmode, addminus, 'l');
+    }
+    return str;
 }

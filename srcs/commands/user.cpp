@@ -1,28 +1,42 @@
-#include "../../headers/Command.hpp"
+#include "../../includes/server.hpp"
 
-void	Command::user(std::vector<std::string> cmds, Client & client)
+// Cette fonction gère la commande USER, qui permet de définir les informations utilisateur pour un client IRC
+void	Server::USER(std::string &message, int fd)
 {
-	// Check if the client is already registered
-	if (client.isRegistered())
-	{
-		sendMessage(client, "462", "", ERR_ALREADYREGISTRED);
-		return;
-	}
+	User *user = getClientByFd(fd);
+	// Extract parameters from the message
+	std::vector<std::string> param = extractParams(message);
+
 	// Check if there are enough parameters
-	if (cmds.size() <= 4 || cmds[4] == ":")
-	{
-		sendMessage(client, "461", cmds[0], ERR_NEEDMOREPARAMS);
+	if (user && param.size() < 5) {
+		notifyUsers(ERR_NOTENOUGHPARAMETERS(user->getNickname()), fd);
 		return;
 	}
-	// Set client attributes
-	client.setUsername(cmds[1]);
-	client.setMode(cmds[2]);
-	client.setUnused(cmds[3]);
-	// Process real name (removing leading ':' if present)
-	if (cmds[4][0] == ':')
-		cmds[4].erase(0, 1);
-	client.setRealName(cmds[4]);
-	// Finalize registration
-	client.setUsered(true);
-	registerClient(client);
+
+	if (!user || !user->isRegistered()) {
+		notifyUsers(ERR_NOTREGISTERED(std::string("*")), fd);
+	}
+
+	// Check if the user is already registered
+	else if (user && !user->getUser().empty()) {
+		notifyUsers(ERR_ALREADYREGISTERED(user->getNickname()), fd);
+		return;
+	} else 	{
+		// Set the username and realname
+		user->setUser(param[1]);
+		// Ensure realname starts without a colon (if present)
+		std::string	realname = param[4];
+		realname = realname.substr(1);
+		user->setRealname(realname);
+	}
+
+	// Final registration check and welcome notification
+	if (user && user->isRegistered()
+		&& !user->getUser().empty()
+		&& !user->getNickname().empty()
+		&& user->getNickname() != "*"
+		&& !user->isConnected()) {
+		user->setConnected(true);
+		notifyUsers(RPL_WELCOME(user->getNickname()), fd);
+	}
 }

@@ -1,46 +1,45 @@
-CXX = c++
-VERBOSE = 0
-CXXFLAGS = -Wall -Wextra -Werror -std=c++98 -D VERBOSE=$(VERBOSE)
-NAME = ircserv 
-SRC =	srcs/main.cpp \
-		srcs/Server.cpp \
-		srcs/Client.cpp \
-		srcs/Command.cpp \
-		srcs/Channel.cpp \
-		srcs/commands/pass.cpp \
-		srcs/commands/nick.cpp \
-		srcs/commands/user.cpp \
-		srcs/commands/quit.cpp \
-		srcs/commands/oper.cpp \
-		srcs/commands/mode.cpp \
-		srcs/commands/join.cpp \
-		srcs/commands/part.cpp \
-		srcs/commands/ping.cpp \
-		srcs/commands/kill.cpp \
-		srcs/commands/privmsg.cpp \
-		srcs/commands/away.cpp \
-		srcs/commands/notice.cpp \
-		srcs/commands/invite.cpp	\
-		srcs/commands/topic.cpp \
-		srcs/commands/names.cpp \
-		srcs/commands/list.cpp \
-		srcs/commands/kick.cpp \
-		srcs/commands/whois.cpp \
-		srcs/commands/who.cpp \
+# Project Name
+NAME            =   ircserv
 
-OBJ = $(SRC:.cpp=.o)
+# Directories
+SRC_DIR         =   srcs
+INC_DIR         =   includes
+BIN_DIR         =   $(SRC_DIR)/bin
 
-all : $(NAME)
+# Files
+SRCS            =   $(wildcard $(SRC_DIR)/**/*.cpp $(SRC_DIR)/*.cpp)
+OBJS            =   $(SRCS:$(SRC_DIR)/%.cpp=$(BIN_DIR)/%.o)
 
-$(NAME) : $(OBJ)
-	$(CXX) $(CXXFLAGS) $^ -o $@
+# Compiler Settings
+CC              =   c++
+CPPFLAGS        =   -std=c++98 -Wall -Wextra -Werror -I$(INC_DIR)
+RM              =   rm -rf
 
-clean :
-	@rm -rf $(OBJ)
+# Targets
+.PHONY: all clean fclean re
 
-fclean : clean
-	@rm -rf $(NAME)
+# Default target
+all: $(NAME)
 
-re : fclean all
+# Build the binary
+$(NAME): $(OBJS)
+	$(CC) $(CPPFLAGS) $(OBJS) -o $(NAME)
+	@echo "Build complete: $(NAME)"
 
-.PHONY : all clean fclean re
+# Compile source files into object files
+$(BIN_DIR)/%.o: $(SRC_DIR)/%.cpp
+	@mkdir -p $(@D)  # Create necessary directories for the object files
+	$(CC) $(CPPFLAGS) -c $< -o $@
+
+# Clean object files
+clean:
+	$(RM) $(BIN_DIR)
+	@echo "Cleaned object files and directories."
+
+# Clean all generated files
+fclean: clean
+	$(RM) $(NAME)
+	@echo "Fully cleaned project."
+
+# Rebuild
+re: fclean all
