@@ -101,10 +101,13 @@ public:
     void	PASS(std::string message, int fd);
 
     void	NICK(std::string message, int fd);
-    bool	isNicknameUsed(std::string &nickname);
-    bool	validNickname(std::string &nickname);
-    void	updateNicknameChannel(std::string old, std::string n_nick);
-    
+    bool	isNicknameUsed(const std::string &nickname);
+    // bool	validNickname(std::string &nickname);
+    bool    validNickname(std::string& nickname);
+    // void	updateNicknameChannel(std::string old, std::string n_nick);
+    void    updateNicknameChannel(std::string& oldNickname, const std::string& newNickname);
+    bool    updateNicknameInList(std::vector<User>& users, const std::string& oldNickname, const std::string& newNickname);
+
     void	USER(std::string &message, int fd);
     
     void	    QUIT(std::string message, int fd);
@@ -138,22 +141,24 @@ public:
     void	TOPIC(std::string message, int fd);
     
     void	                    MODE_CHANNEL(std::string &message, int fd);
-    void	                    parseChannelMode(std::string message, std::string &channelname, std::string &modestring, std::string &param);
+    // void	                    parseChannelMode(std::string message, std::string &channelname, std::string &modestring, std::string &param);
+    void	                    parseChannelMode(const std::string &message, std::string &channelname, std::string &modestring, std::string &param);
     std::vector<std::string>	splitChannelMode(std::string param);
     std::string	                updateMode(std::string ssmode, char addminus, char mode);
     std::string	                inviteOnly(Channel *channel, char addminus, std::string ssmode);
     std::string	                topicRestriction(Channel *channel, char addminus, std::string ssmode);
     std::string	                channelPassword(Channel *channel, char addminus, std::string ssmode, std::vector<std::string> paramsplit, std::string &arg, size_t &pos, int fd);
-    bool	                    isValidChannelPassword(std::string password);
+    bool	                    isValidChannelPassword(const std::string &password);
     std::string	                operatorPrivilege(Channel *channel, char addminus, std::string ssmode, std::vector<std::string> paramsplit, std::string &arg, size_t &pos, int fd);
     std::string                 setUserLimit(Channel *channel, char addminus, std::string ssmode, std::vector<std::string> paramsplit, std::string &arg, size_t &pos, int fd);
-    bool	                    isValidUserLimit(std::string &limit);
+    bool	                    isValidUserLimit(const std::string &limit);
     
     void            PRIVMSG(std::string &message, int fd);
     std::string     getChannelTarget(std::string &target);
     std::string	    getUserTarget(int fd);
     int	        validatePrivmsgSyntax(std::string split_mess[3], std::string split_params[3]);
     int	        handlePrivmsg(std::string split_message[3], std::string split_params[3], int fd);
+    // std::string     parseNickname(const std::string& message);
 };
 
 #endif

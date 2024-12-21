@@ -173,7 +173,7 @@ void User::setFduser(int fd)
 }
 
 // Définit le pseudonyme de l'utilisateur
-void User::setNickname(std::string &nickname)
+void User::setNickname(const std::string &nickname)
 {
     this->nickname = nickname;
 }

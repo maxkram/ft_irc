@@ -48,7 +48,7 @@ public:
     time_t              getCreationTime() const;
 
     void setFduser(int fd);
-    void setNickname(std::string &nickname);
+    void setNickname(const std::string &nickname);
     void setUser(std::string &user);
     void setIp(std::string ip);
     void setBuffer(std::string recv);
