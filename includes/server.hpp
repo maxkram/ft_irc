@@ -124,10 +124,12 @@ public:
     void	INVITE(std::string message, int fd);
 
     void	    PART(std::string message, int fd);
-    int	        splitPartParams(std::string message, std::vector<std::string> &param, std::string &reason, int fd);
-    std::string	extractPartReason(std::string &message, std::vector<std::string> &param);
-    void	    partReason(std::string message, std::string tofind, std::string &reason);
-    
+    // int	        splitPartParams(std::string message, std::vector<std::string> &param, std::string &reason, int fd);
+    int         splitPartParams(const std::string& message, std::vector<std::string>& channels, std::string& reason, int fd);
+    // std::string	extractPartReason(std::string &message, std::vector<std::string> &param);
+    // void	    partReason(std::string message, std::string tofind, std::string &reason);
+    void        partReason(const std::string& message, const std::string& tofind, std::string& reason);
+
     void	    KICK(std::string message, int fd);
     std::string	splitKickParams(std::string message, std::vector<std::string> &param, std::string &user, int fd);
     std::string	kickReason(std::string &message, std::vector<std::string> &param);
