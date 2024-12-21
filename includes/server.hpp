@@ -159,6 +159,7 @@ public:
     int	        validatePrivmsgSyntax(std::string split_mess[3], std::string split_params[3]);
     int	        handlePrivmsg(std::string split_message[3], std::string split_params[3], int fd);
     // std::string     parseNickname(const std::string& message);
+    std::vector<std::string>    splitByDelimiter(const std::string &input, char delimiter);
 };
 
 #endif
