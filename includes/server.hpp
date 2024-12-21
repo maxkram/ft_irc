@@ -121,6 +121,7 @@ public:
     int	    splitJoinParams(std::vector<std::pair<std::string, std::string> > &param, std::string message, int fd);
     void	addClientToExistChannel(std::vector<std::pair<std::string, std::string> > &param, int i , int j, int fd);
     void	createAndAddToNewChannel(std::vector<std::pair<std::string, std::string> >&param, int i, int fd);
+    // void    createAndAddToNewChannel(const std::string& channelName, const std::string& key, int fd);
     int	    channelUserCount(std::string user);
     bool	isUserInvited(User *user, std::string channel, int flag);
     
@@ -160,6 +161,7 @@ public:
     int	        handlePrivmsg(std::string split_message[3], std::string split_params[3], int fd);
     // std::string     parseNickname(const std::string& message);
     std::vector<std::string>    splitByDelimiter(const std::string &input, char delimiter);
+    void        sendJoinNotifications(Channel* chan, int fd);
 };
 
 #endif
