@@ -162,6 +162,8 @@ public:
     // std::string     parseNickname(const std::string& message);
     std::vector<std::string>    splitByDelimiter(const std::string &input, char delimiter);
     void        sendJoinNotifications(Channel* chan, int fd);
+    // void        handleInvite(const std::string& invitedUserName, const std::string& channelName, User* sender, Channel* channel);
+    // std::vector<std::string>    extractParams(const std::string& message);
 };
 
 #endif

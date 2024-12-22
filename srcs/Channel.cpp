@@ -1,75 +1,76 @@
 #include "../includes/channel.hpp"
 
-// Constructeur par défaut de la classe Channel
-Channel::Channel()
-{
-    this->channelName = "";
-    this->topicName = "";
-    this->created_at = "";
-    this->topic = 0;
-    this->key = 0;
-    this->limit = 0;
-    this->invitOnly = 0;
-    this->topicRestriction = false;
+// Default Channel class constructor
+// Channel::Channel()
+// {
+//     this->channelName = "";
+//     this->topicName = "";
+//     this->created_at = "";
+//     this->topic = 0;
+//     this->key = 0;
+//     this->userLimit = 0;
+//     this->inviteOnly = 0;
+//     this->topicRestriction = false;
     
-    char mode[5] = {'i', 't', 'k', 'o', 'l'};
-    for (int i = 0; i < 5; i++)
-        channelMode.push_back(std::make_pair(mode[i], false));
+//     char mode[5] = {'i', 't', 'k', 'o', 'l'};
+//     for (int i = 0; i < 5; i++)
+//         channelModes.push_back(std::make_pair(mode[i], false));
+// }
+
+Channel::Channel()
+    : topic(false), key(false), userLimit(0), inviteOnly(false), topicRestriction(false) {
+    created_at = std::to_string(std::time(NULL));
+    char modes[] = {'i', 't', 'k', 'o', 'l'};
+    for (size_t i = 0; i < 5; ++i) {
+        channelModes.push_back(std::make_pair(modes[i], false));
+    }
 }
 
-// Constructeur de copie de la classe Channel
-Channel::Channel(Channel const &src)
-{
+// Channel class copy constructor
+Channel::Channel(const Channel &src) {
     *this = src;
 }
 
-// Destructeur de la classe Channel
-Channel::~Channel()
-{
-}
-
-// Opérateur d'affectation de la classe Channel
-Channel &Channel::operator=(Channel const &rhs)
-{
+// Channel class assignment operator
+Channel &Channel::operator=(const Channel &rhs) {
     if (this != &rhs)
     {
-        this->channelName = rhs.channelName;
-        this->topicName = rhs.topicName;
-        this->password = rhs.password;
-        this->topic = rhs.topic;
-        this->key = rhs.key;
-        this->limit = rhs.limit;
-        this->sock_user = rhs.sock_user;
-        this->admin = rhs.admin;
-        this->invitOnly = rhs.invitOnly;
-        this->topicRestriction = rhs.topicRestriction;
-        this->created_at = rhs.created_at;
-        this->channelMode = rhs.channelMode;
+        channelName = rhs.channelName;
+        topicName = rhs.topicName;
+        password = rhs.password;
+        topic = rhs.topic;
+        key = rhs.key;
+        userLimit = rhs.userLimit;
+        sock_user = rhs.sock_user;
+        admin = rhs.admin;
+        inviteOnly = rhs.inviteOnly;
+        topicRestriction = rhs.topicRestriction;
+        created_at = rhs.created_at;
+        channelModes = rhs.channelModes;
     }
     return (*this);
 }
 
-// Retourne le nom du canal
-std::string Channel::getChannelName()
-{
+// Channel class destructor
+Channel::~Channel() {}
+
+// Returns the channel name
+std::string Channel::getChannelName () const {
     return (channelName);
 }
 
-// Retourne le nom du sujet
-std::string Channel::getTopicName()
-{
+// Returns the topic name
+std::string Channel::getTopicName() const {
     return (topicName);
 }
 
-// Retourne le mot de passe du canal
-std::string Channel::getChannelPassword()
-{
+// Returns the channel password
+std::string Channel::getChannelPassword() const {
     return (this->password);
 }
 
-// Génère une liste des utilisateurs qui sont membres du canal et la retourne
-std::string Channel::getUserList()
-{
+// Generate a list of channel member users and return it
+std::string Channel::getUserList() {
     std::string list;
 
     for (size_t i = 0; i < admin.size(); i++)
@@ -90,21 +91,19 @@ std::string Channel::getUserList()
     return (list);
 }
 
-// Retourne la date de création du canal
-std::string Channel::getCreationDate()
-{
+// Returns the channel creation date
+std::string Channel::getCreationDate() const {
     return (this->created_at);
 }
 
-// Retourne les modes du canal sous forme de chaîne de caractères
-std::string Channel::getChannelModes()
-{
+// Returns the channel modes as a string
+std::string Channel::getChannelModes() const {
     std::string mode;
 
-    for (size_t i = 0; i < channelMode.size(); i++)
+    for (size_t i = 0; i < channelModes.size(); i++)
     {
-        if (channelMode[i].first != 'o' && channelMode[i].second)
-            mode.push_back(channelMode[i].first);
+        if (channelModes[i].first != 'o' && channelModes[i].second)
+            mode.push_back(channelModes[i].first);
     }
     if (!mode.empty())
         mode.insert(mode.begin(), '+');
@@ -112,21 +111,17 @@ std::string Channel::getChannelModes()
     return (mode);
 }
 
-// Retourne une référence à la liste des utilisateurs non-opérateurs du canal
-std::vector<User> &Channel::getUsers()
-{
+// Returns a reference to the list of non-operator users of the channel
+std::vector<User> &Channel::getUsers() {
     return (sock_user);
 }
 
-// Retourne une référence à la liste des opérateurs du canal
-std::vector<User> &Channel::getOperators()
-{
+// Returns a reference to the list of channel operators
+std::vector<User> &Channel::getOperators() {
     return (admin);
 }
-
-// Retourne un pointeur vers l'utilisateur ayant le descripteur de fichier donné dans sock_user
-User *Channel::getUserByFd(int fd)
-{
+// Returns a pointer to the user with the file descriptor given in sock_user
+User *Channel::getUserByFd(int fd) {
     for (std::vector<User>::iterator it = sock_user.begin(); it != sock_user.end(); ++it)
     {
         if (it->getFduser() == fd)
@@ -134,10 +129,8 @@ User *Channel::getUserByFd(int fd)
     }
     return (NULL);
 }
-
-// Retourne un pointeur vers l'opérateur ayant le descripteur de fichier donné dans admin
-User *Channel::getOperatorByFd(int fd)
-{
+// Returns a pointer to the operator with the file descriptor given in admin
+User *Channel::getOperatorByFd(int fd) {
     for (std::vector<User>::iterator it = admin.begin(); it != admin.end(); ++it)
     {
         if (it->getFduser() == fd)
@@ -145,10 +138,8 @@ User *Channel::getOperatorByFd(int fd)
     }
     return (NULL);
 }
-
-// Recherche un utilisateur par nom dans sock_user et admin
-User *Channel::getFindUserByName(std::string name)
-{
+// Search for a user by name in sock_user and admin
+User *Channel::getFindUserByName(const std::string name) {
     for (std::vector<User>::iterator it = sock_user.begin(); it != sock_user.end(); ++it)
     {
         if (it->getNickname() == name)
@@ -161,46 +152,32 @@ User *Channel::getFindUserByName(std::string name)
     }
     return (NULL);
 }
-
-// Retourne le statut de l'invitation (0 ou 1)
-int Channel::getInviteOnlyStatus()
-{
-    return this->invitOnly;
+// Returns the status of the invitation (0 or 1);
+int Channel::getInviteOnlyStatus() {
+    return this->inviteOnly;
 }
-
-// Retourne le statut du sujet (0 ou 1)
-int Channel::getTopicStatus()
-{
+// Return the state of the subject (0 or 1);
+int Channel::getTopicStatus() const {
     return this->topic;
 }
-
-// Retourne la clé du canal (mot de passe)
-int Channel::getKeyStatus()
-{
+// Returns the channel key (password);
+int Channel::getKeyStatus() const {
     return this->key;
 }
-
-// Retourne la limite du nombre d'utilisateurs
-int Channel::getUserLimit()
-{
-    return this->limit;
+// Returns the number of users limit
+int Channel::getUserLimit() const {
+    return this->userLimit;
 }
-
-// Retourne les restrictions sur le sujet (true ou false)
-bool Channel::getTopicRestriction() const
-{
+// Returns the restrictions on the subject (true or false)
+bool Channel::getTopicRestriction() const {
     return (this->topicRestriction);
 }
-
-// Retourne l'option de mode du canal spécifiée par l'index i
-bool Channel::getChannelModeOption(size_t i)
-{
-    return (channelMode[i].second);
+// Returns the channel mode option specified by index i
+bool Channel::getChannelModeOption(size_t i) const {
+    return (channelModes[i].second);
 }
-
-// Retourne une liste de pointeurs vers les utilisateurs du canal
-std::vector<User *> Channel::getUserPointers()
-{
+// Returns a list of pointers to channel users
+std::vector<User *> Channel::getUserPointers() {
     std::vector<User *> pointers;
     for (size_t i = 0; i < sock_user.size(); i++)
     {
@@ -208,111 +185,77 @@ std::vector<User *> Channel::getUserPointers()
     }
     return (pointers);
 }
-
-// Définit le nom du canal
-void Channel::setChannelName(std::string name)
-{
+// Set the channel name
+void Channel::setChannelName(std::string name) {
     this->channelName = name;
 }
-
-// Définit le nom du sujet
-void Channel::setTopicName(std::string topic)
-{
+// Set the topic name
+void Channel::setTopicName(const std::string topic) {
     this->topicName = topic;
 }
-
-// Définit le mot de passe du canal
-void Channel::setChannelPassword(std::string password)
-{
+// Set the channel password
+void Channel::setChannelPassword(const std::string password) {
     this->password = password;
 }
-
-// Définit le statut d'invitation (0 ou 1)
-void Channel::setInviteOnlyStatus(int invitOnly)
-{
-    this->invitOnly = invitOnly;
+// Set the invitation status (0 or 1);
+void Channel::setInviteOnlyStatus(int inviteOnly) {
+    this->inviteOnly = inviteOnly;
 }
-
-// Définit les restrictions sur le sujet (true ou false)
-void Channel::setTopicRestriction(bool restriction)
-{
+// Set restrictions on the subject (true or false)
+void Channel::setTopicRestriction(bool restriction) {
     this->topicRestriction = restriction;
 }
-
-// Définit le statut du sujet (0 ou 1)
-void Channel::setTopicStatus(int topic)
-{
+// Set the state of the subject (0 or 1);
+void Channel::setTopicStatus(int topic) {
     this->topic = topic;
 }
-
-// Définit la clé du canal (mot de passe)
-void Channel::setKeyStatus(int key)
-{
+// Set the channel key (password);
+void Channel::setKeyStatus(int key) {
     this->key = key;
 }
-
-// Définit la limite du nombre d'utilisateurs
-void Channel::setUserLimit(int limit)
-{
-    this->limit = limit;
+// Set the limit on the number of users
+void Channel::setUserLimit(int limit) {
+    this->userLimit = limit;
 }
-
-// Définit l'option de mode du canal spécifiée par l'index i
-void Channel::setChannelMode(size_t i, bool mode)
-{
-    channelMode[i].second = mode;
+// Set the channel mode option specified by index i
+void Channel::setChannelMode(size_t i, bool mode) {
+    channelModes[i].second = mode;
 }
-
-// Définit la date de création du canal
-void Channel::setCreationDate()
-{
+// Set the channel creation date
+void Channel::setCreationDate() {
     std::time_t _time = std::time(NULL);
     std::ostringstream oss;
     oss << _time;
     this->created_at = std::string(oss.str());
 }
-
-// Retire un utilisateur du canal en fonction de son descripteur de fichier
-void Channel::removeUserByFd(int fd)
-{
-    for (std::vector<User>::iterator it = sock_user.begin(); it != sock_user.end(); ++it)
-    {
-        if (it->getFduser() == fd)
-        {
+// Remove a user from the channel based on their file descriptor
+void Channel::removeUserByFd(int fd) {
+    for (std::vector<User>::iterator it = sock_user.begin(); it != sock_user.end(); ++it) {
+        if (it->getFduser() == fd) {
             sock_user.erase(it);
-            break;
+            return;
         }
     }
 }
-
-// Retire un opérateur du canal en fonction de son descripteur de fichier
-void Channel::removeOperatorByFd(int fd)
-{
-    for (std::vector<User>::iterator it = admin.begin(); it != admin.end(); ++it)
-    {
-        if (it->getFduser() == fd)
-        {
+// Remove an operator from the pipe based on its file descriptor
+void Channel::removeOperatorByFd(int fd) {
+    for (std::vector<User>::iterator it = admin.begin(); it != admin.end(); ++it) {
+        if (it->getFduser() == fd) {
             admin.erase(it);
-            break;
+            return;
         }
     }
 }
-
-// Ajoute un utilisateur à la liste des membres du canal
-void Channel::addUser(User user)
-{
+// Add a user to the list of channel members
+void Channel::addUser(const User user) {
     sock_user.push_back(user);
 }
-
-// Ajoute un utilisateur à la liste des opérateurs du canal
-void Channel::addOperatorOnChannel(User user)
-{
+// Add a user to the list of channel operators
+void Channel::addOperatorOnChannel(const User user) {
     admin.push_back(user);
 }
-
-// Vérifie si le nom du canal est correct
-void Channel::checkChannelName(std::string channelName)
-{
+// Check if the channel name is correct
+void Channel::checkChannelName(std::string channelName) {
     if (channelName.empty() || channelName.size() < 2)
         throw std::runtime_error("Incorrect channel name");
     if (channelName[0] != '&')
@@ -323,17 +266,13 @@ void Channel::checkChannelName(std::string channelName)
             throw std::runtime_error("Incorrect channel name");
     }
 }
-
-// Retourne le nombre total d'utilisateurs dans le canal (opérateurs + utilisateurs normaux)
-size_t Channel::getUserCount()
-{
+// Returns the total number of users in the channel (operators + normal users)
+size_t Channel::getUserCount() {
     size_t num = this->sock_user.size() + this->admin.size();
     return (num);
 }
-
-// Vérifie si un utilisateur avec le nom donné est présent dans le canal
-bool Channel::isUserInChannel(std::string &name)
-{
+// Check if a user with the given name is present in the channel
+bool Channel::isUserInChannel(std::string &name) {
     for (size_t i = 0; i < sock_user.size(); i++)
     {
         if (sock_user[i].getNickname() == name)
@@ -346,10 +285,8 @@ bool Channel::isUserInChannel(std::string &name)
     }
     return false;
 }
-
-// Vérifie si un utilisateur avec le nom donné est opérateur dans le canal
-bool Channel::isUserOperator(std::string &name)
-{
+// Check if a user with the given name is an operator in the channel
+bool Channel::isUserOperator(std::string &name) {
     for (std::vector<User>::iterator it = admin.begin(); it != admin.end(); ++it)
     {
         if (it->getNickname() == name)
@@ -357,18 +294,14 @@ bool Channel::isUserOperator(std::string &name)
     }
     return (false);
 }
-
-// Vérifie si le canal a des opérateurs
-bool Channel::hasOperators()
-{
+// Check if the channel has operators
+bool Channel::hasOperators() {
     if (admin.empty())
         return (false);
     return (true);
 }
-
-// Envoie un message à tous les utilisateurs et opérateurs présents dans le canal
-void Channel::broadcastMessage(std::string reply)
-{
+// Send a message to all users and operators present in the channel
+void Channel::broadcastMessage(std::string reply) {
     for (size_t i = 0; i < admin.size(); i++)
     {
         if (send(admin[i].getFduser(), reply.c_str(), reply.size(), 0) == -1)
@@ -380,10 +313,8 @@ void Channel::broadcastMessage(std::string reply)
             std::cerr << "send() failed" << std::endl;
     }
 }
-
-// Envoie un message à tous les utilisateurs et opérateurs présents dans le canal sauf un
-void Channel::broadcastMessage2(std::string reply, int fd)
-{
+// Send a message to all users and operators present in the channel except one
+void Channel::broadcastMessage2(std::string reply, int fd) {
     for (size_t i = 0; i < admin.size(); i++)
     {
         if (admin[i].getFduser() != fd)
@@ -401,53 +332,69 @@ void Channel::broadcastMessage2(std::string reply, int fd)
         }
     }
 }
-
-// Promeut le premier utilisateur non-opérateur au rang d'opérateur
-void Channel::promoteFirstUserToOperator()
-{
+// Promotes the first non-operator user to operator
+void Channel::promoteFirstUserToOperator() {
     admin.push_back(sock_user[0]);
     sock_user.erase(sock_user.begin());
 }
+// Promotes a specific user to operator
+// bool Channel::promoteUserToOperator(std::string& name) {
+//     size_t i = 0;
+//     for (; i < sock_user.size(); i++)
+//     {
+//         if (sock_user[i].getNickname() == name)
+//             break;
+//     }
+//     if (i < sock_user.size())
+//     {
+//         admin.push_back(sock_user[i]);
+//         sock_user.erase(i + sock_user.begin());
+//         return true;
+//     }
+//     return false;
+// }
 
-// Promeut un utilisateur spécifique au rang d'opérateur
-bool Channel::promoteUserToOperator(std::string& name)
-{
-    size_t i = 0;
-    for (; i < sock_user.size(); i++)
-    {
-        if (sock_user[i].getNickname() == name)
-            break;
-    }
-    if (i < sock_user.size())
-    {
-        admin.push_back(sock_user[i]);
-        sock_user.erase(i + sock_user.begin());
-        return true;
+bool Channel::promoteUserToOperator(const std::string& name) {
+    for (std::vector<User>::iterator it = sock_user.begin(); it != sock_user.end(); ++it) {
+        if (it->getNickname() == name) {
+            admin.push_back(*it);
+            sock_user.erase(it);
+            return true;
+        }
     }
     return false;
 }
 
-// Rétrograde un opérateur spécifique au rang d'utilisateur non-opérateur
-bool Channel::demoteOperatorToUser(std::string& name)
-{
-    size_t i = 0;
-    for (; i < admin.size(); i++)
-    {
-        if (admin[i].getNickname() == name)
-            break;
-    }
-    if (i < admin.size())
-    {
-        sock_user.push_back(admin[i]);
-        admin.erase(i + admin.begin());
-        return true;
+// Reduce a specific operator to non-operator user
+// bool Channel::demoteOperatorToUser(std::string& name) {
+//     size_t i = 0;
+//     for (; i < admin.size(); i++)
+//     {
+//         if (admin[i].getNickname() == name)
+//             break;
+//     }
+//     if (i < admin.size())
+//     {
+//         sock_user.push_back(admin[i]);
+//         admin.erase(i + admin.begin());
+//         return true;
+//     }
+//     return false;
+// }
+
+bool Channel::demoteOperatorToUser(const std::string& name) {
+    for (std::vector<User>::iterator it = admin.begin(); it != admin.end(); ++it) {
+        if (it->getNickname() == name) {
+            sock_user.push_back(*it);
+            admin.erase(it);
+            return true;
+        }
     }
     return false;
 }
 
-// Envoie un message au canal de la part d'un utilisateur
-void Channel::notifyUsers(std::string msg, User &author)
-{
+// Send a message to the channel on behalf of a user
+void Channel::notifyUsers(std::string msg, User &author) {
     std::cout << "channel:: notifyUsers" << std::endl;
     (void)msg;
     (void)author;

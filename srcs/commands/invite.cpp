@@ -1,6 +1,6 @@
 #include "../../includes/server.hpp"
 
-// Méthode pour gérer la commande INVITE
+// // Method to manage the INVITE command
 void Server::INVITE(std::string message, int fd)
 {
     std::vector<std::string> param;
