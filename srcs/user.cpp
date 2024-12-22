@@ -1,113 +1,106 @@
 #include "../includes/user.hpp"
 
-// Constructeur par défaut de la classe User
+// // Default constructor for the User class
+// User::User()
+// {
+//     fdUser = -1;
+//     nickname = "";
+//     user = "";
+//     ip = "";
+//     buff = "";
+//     realname = "";
+//     registered = false;
+//     connected = false;
+//     isOp = false;
+//     chanFounder = false;
+//     time(&created);
+//     char modes[2] = {'i', 'o'};
+//     for (int i = 0; i < 2; i++)
+//         userModes.push_back(std::make_pair(modes[i], false));
+// }
+
+// Default Constructor
 User::User()
-{
-    this->fdUser = -1;
-    this->nickname = "";
-    this->user = "";
-    this->ip = "";
-    this->buff = "";
-    this->realname = "";
-    this->registered = false;
-    this->connected = false;
-    this->isOp = false;
-    this->chanFounder = false;
-    time(&this->created);
-    char modes[2] = {'i', 'o'};
-    for (int i = 0; i < 2; i++)
-        userModes.push_back(std::make_pair(modes[i], false));
+    : fdUser(-1), registered(false), connected(false), isOp(false), chanFounder(false) {
+    time(&created);
+    userModes.push_back(std::make_pair('i', false)); // Invisible mode
+    userModes.push_back(std::make_pair('o', false)); // Operator mode
 }
 
-// Constructeur avec paramètres de la classe User
-User::User(int fd, std::string nickname, std::string user)
-    : fdUser(fd), nickname(nickname), user(user) {}
+// // Parameterized constructor for the User class
+// User::User(int fd, const std::string& nickname, const std::string& user)
+//     : fdUser(fd), nickname(nickname), user(user) {}
 
-// Constructeur de copie de la classe User
-User::User(User const &obj)
-{
+// Parameterized Constructor
+User::User(int fd, const std::string& nickname, const std::string& username)
+    : fdUser(fd), nickname(nickname), user(username), registered(false), connected(false),
+      isOp(false), chanFounder(false) {
+    time(&created);
+    userModes.push_back(std::make_pair('i', false)); // Invisible mode
+    userModes.push_back(std::make_pair('o', false)); // Operator mode
+}
+
+
+// Copy constructor for the User class
+User::User(const User &obj) {
     *this = obj;
 }
 
-// Opérateur d'affectation de la classe User
-User &User::operator=(User const &obj)
+// Assignment operator for the User class
+User &User::operator=(const User &obj)
 {
-    if (this != &obj)
-    {
-        this->fdUser = obj.fdUser;
-        this->nickname = obj.nickname;
-        this->user = obj.user;
-        this->ip = obj.ip;
-        this->buff = obj.buff;
-        this->registered = obj.registered;
-        this->connected = obj.connected;
-        this->isOp = obj.isOp;
-        this->userModes = obj.userModes;
-        this->realname = obj.realname;
-        this->chanFounder = obj.chanFounder;
-        this->created = obj.created;
+    if (this != &obj) {
+        fdUser = obj.fdUser;
+        nickname = obj.nickname;
+        user = obj.user;
+        ip = obj.ip;
+        buff = obj.buff;
+        registered = obj.registered;
+        connected = obj.connected;
+        isOp = obj.isOp;
+        userModes = obj.userModes;
+        realname = obj.realname;
+        chanFounder = obj.chanFounder;
+        created = obj.created;
     }
     return *this;
 }
 
-// Compare les pseudonymes de deux utilisateurs pour déterminer s'ils sont égaux
-bool User::operator==(User const &rhs)
-{
-    if (this->nickname == rhs.nickname)
-        return (true);
-    return (false);
+// Compares the nicknames of two users to determine if they are equal
+bool User::operator==(const User &rhs) {
+    return nickname == rhs.nickname;
 }
 
-// Destructeur de la classe User
-User::~User()
-{}
+// Destructor for the User class
+User::~User() {}
 
-// Retourne le descripteur de fichier de l'utilisateur
-int User::getFduser()
-{
-    return (this->fdUser);
+// Returns the file descriptor of the user
+int User::getFduser() const { return (fdUser); }
+
+// Returns a reference to the user's nickname
+std::string &User::getNickname() {return (nickname); }
+
+// Returns the username (or an empty string if it's empty)
+std::string User::getUser() { return (user.empty() ? std::string("") : user); }
+
+// Returns the IP address of the user
+std::string User::getIp() const { return (ip); }
+
+// Returns the buffer containing data received from the user
+std::string User::getBuffer() const { return (buff); }
+
+// Returns the hostname in the format "nickname!user"
+std::string User::getHostname() {
+    return nickname + "!" + user;
 }
 
-// Retourne une référence au pseudonyme de l'utilisateur
-std::string &User::getNickname()
-{
-    return (this->nickname);
-}
-
-// Retourne le nom d'utilisateur (ou une chaîne vide s'il est vide)
-std::string User::getUser()
-{
-    return (user.empty() ? std::string("") : user);
-}
-
-// Retourne l'adresse IP de l'utilisateur
-std::string User::getIp()
-{
-    return (ip);
-}
-
-// Retourne le buff contenant les données reçues de l'utilisateur
-std::string User::getBuffer()
-{
-    return (buff);
-}
-
-// Retourne le nom d'hôte au format "nickname!user"
-std::string User::getHostname()
-{
-    std::string hostname = getNickname() + "!" + getUser();
-    return (hostname);
-}
-
-// Retourne le nom réel de l'utilisateur
-std::string User::getRealname() const
-{
+// Returns the real name of the user
+std::string User::getRealname() const {
     return (this->realname);
 }
 
-// Retourne les modes de l'utilisateur sous forme de chaîne de caractères
-std::string User::getUserModes()
-{
+// Returns the user's modes as a string
+std::string User::getUserModes() const {
     std::string mode;
     for (size_t i = 0; i < userModes.size(); i++)
     {
@@ -119,27 +112,17 @@ std::string User::getUserModes()
     return (mode);
 }
 
-// Retourne true si l'utilisateur est enregistré
-bool User::isRegistered()
-{
-    return (registered);
-}
+// Returns true if the user is registered
+bool User::isRegistered() const { return (registered); }
 
-// Retourne true si l'utilisateur est connecté
-bool User::isConnected()
-{
-    return (this->connected);
-}
+// Returns true if the user is connected
+bool User::isConnected() { return (this->connected); }
 
-// Retourne true si l'utilisateur est opérateur
-bool User::isOperator()
-{
-    return (this->isOp);
-}
+// Returns true if the user is an operator
+bool User::isOperator() const { return (this->isOp); }
 
-// Vérifie si l'utilisateur est invité à un canal spécifique
-bool User::isInvited(std::string &channel)
-{
+// Checks if the user is invited to a specific channel
+bool User::isInvited(std::string &channel) {
     for (size_t i = 0; i < this->invitation.size(); i++)
     {
         if (this->invitation[i] == channel)
@@ -148,113 +131,74 @@ bool User::isInvited(std::string &channel)
     return (false);
 }
 
-// Retourne l'état d'une option de mode utilisateur spécifique
-bool User::getUserModeOption(size_t i)
-{
-    return (userModes[i].second);
-}
+// Returns the state of a specific user mode option
+bool User::getUserModeOption(size_t i) const { return (userModes[i].second); }
 
-// Retourne true si l'utilisateur est le fondateur du canal
-bool User::isChannelFounder()
-{
-    return (this->chanFounder);
-}
+// Returns true if the user is the founder of the channel
+bool User::isChannelFounder() const { return (chanFounder); }
 
-// Retourne l'heure de création de l'utilisateur
-time_t User::getCreationTime() const
-{
-    return (created);
-}
+// Returns the creation time of the user
+time_t User::getCreationTime() const { return (created); }
 
-// Définit le descripteur de fichier de l'utilisateur
-void User::setFduser(int fd)
-{
-    this->fdUser = fd;
-}
+// Sets the file descriptor of the user
+void User::setFduser(int fd) { this->fdUser = fd; }
 
-// Définit le pseudonyme de l'utilisateur
-void User::setNickname(const std::string &nickname)
-{
-    this->nickname = nickname;
-}
+// Sets the user's nickname
+void User::setNickname(const std::string &nickname) { this->nickname = nickname; }
 
-// Définit le nom d'utilisateur
-void User::setUser(std::string &user)
-{
-    this->user = user;
-}
+// Sets the username
+void User::setUser(std::string &user) { this->user = user; }
 
-// Définit l'adresse IP de l'utilisateur
-void User::setIp(std::string ip)
-{
-    this->ip = ip;
-}
+// Sets the user's IP address
+void User::setIp(std::string ip) { this->ip = ip; }
 
-// Ajoute les données reçues au buff de l'utilisateur
-void User::setBuffer(std::string recv)
-{
-    buff += recv;
-}
+// Appends data received to the user's buffer
+void User::setBuffer(const std::string recv) { buff += recv; }
 
-// Définit si l'utilisateur est enregistré
-void User::setRegistered(bool val)
-{
-    registered = val;
-}
+// Sets whether the user is registered
+void User::setRegistered(bool val) { registered = val; }
 
-// Définit si l'utilisateur est connecté
-void User::setConnected(bool val)
-{
-    this->connected = val;
-}
+// Sets whether the user is connected
+void User::setConnected(bool val) { this->connected = val; }
 
-// Définit si l'utilisateur est opérateur
-void User::setOperator(bool op)
-{
-    this->isOp = op;
-}
+// Sets whether the user is an operator
+void User::setOperator(bool op) { this->isOp = op; }
 
-// Définit si l'utilisateur est le fondateur du canal
-void User::setChannelFounder(bool founder)
-{
-    this->chanFounder = founder;
-}
+// Sets whether the user is the founder of the channel
+void User::setChannelFounder(bool founder) { this->chanFounder = founder; }
 
 
-// Définit le mode utilisateur pour une option spécifique
-void User::setUserMode(size_t i, bool mode)
-{
-    userModes[i].second = mode;
-}
+// Sets the user mode for a specific option
+void User::setUserMode(size_t i, bool mode) { userModes[i].second = mode; }
 
-// Définit le nom réel de l'utilisateur
-void User::setRealname(std::string realname)
-{
-    this->realname = realname;
-}
+// Sets the real name of the user
+void User::setRealname(const std::string realname) { this->realname = realname; }
 
-// Supprime le buff de l'utilisateur
-void User::clearBuffer()
-{
-    buff.clear();
-}
+// Clears the user's buffer
+void User::clearBuffer() { buff.clear(); }
 
-// Ajoute une invitation pour un canal spécifique
-void User::addInvitation(std::string &channel)
-{
-    this->invitation.push_back(channel);
-}
-
-// Retire l'invitation quand l'utilisateur rejoint le canal
-void User::removeInvitation(std::string &channel)
-{
-    for (size_t i = 0; i < this->invitation.size(); i++)
-    {
-        if (this->invitation[i] == channel)
-        {
-            this->invitation.erase(this->invitation.begin() + i);
-            return;
-        }
+// Adds an invitation for a specific channel
+void User::addInvitation(const std::string& channel) {
+    if (std::find(invitation.begin(), invitation.end(), channel) == invitation.end()) {
+        invitation.push_back(channel);
     }
 }
 
+// // Retire l'invitation quand l'utilisateur rejoint le canal
+// void User::removeInvitation(const std::string &channel) {
+//     for (size_t i = 0; i < this->invitation.size(); i++)
+//     {
+//         if (this->invitation[i] == channel)
+//         {
+//             this->invitation.erase(this->invitation.begin() + i);
+//             return;
+//         }
+//     }
+// }
+
+void User::removeInvitation(const std::string& channel) {
+    std::vector<std::string>::iterator it = std::find(invitation.begin(), invitation.end(), channel);
+    if (it != invitation.end()) {
+        invitation.erase(it);
+    }
+}

@@ -64,7 +64,7 @@ int Server::handlePrivmsg(std::string split_message[3], std::string split_params
     else
     {
         tmp = getUserTarget(fd);
-        if (tmp.empty() == 1 || getClientByFd(fd) == NULL || getClientByNickname(split_params[0]) == NULL)
+        if (tmp.empty() == 1 || getClientByFd(fd) == NULL || getUserByNickname(split_params[0]) == NULL)
         {
             notifyUsers(ERR_NOSUCHNICK(tmp), fd);
             return (1);
@@ -111,9 +111,9 @@ void Server::PRIVMSG(std::string &message, int fd)
     }
     else
     {
-        if (getClientByFd(fd)->getHostname() != getClientByNickname(split_params[0])->getHostname())
+        if (getClientByFd(fd)->getHostname() != getUserByNickname(split_params[0])->getHostname())
         {
-            notifyUsers(RPL_PRIVMSGUSER(getClientByFd(fd)->getHostname(), getClientByFd(fd)->getIp(), getClientByNickname(split_params[0])->getNickname(), split_params[1]), getClientByNickname(split_params[0])->getFduser());
+            notifyUsers(RPL_PRIVMSGUSER(getClientByFd(fd)->getHostname(), getClientByFd(fd)->getIp(), getUserByNickname(split_params[0])->getNickname(), split_params[1]), getUserByNickname(split_params[0])->getFduser());
         }
     }
 }

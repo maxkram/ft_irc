@@ -18,7 +18,7 @@
 // 			std::cerr << "Error: Invalid port number / password!" << std::endl;
 // 			return (1);
 // 		}
-// 		serv.initServer(atoi(av[1]), av[2]);
+// 		serv.initialize(atoi(av[1]), av[2]);
 // 		serv.checkPollEvents();
 // 	}
 // 	catch(const std::exception& e)
@@ -105,7 +105,7 @@ int	main(int argc, char **argv)
         // Parse the port and initialize the server
         int port;
         std::stringstream(portStr) >> port;
-        serv.initServer(port, password);
+        serv.initialize(port, password);
 
         // Start handling events
         serv.checkPollEvents();
@@ -115,7 +115,7 @@ int	main(int argc, char **argv)
 		// 	std::cerr << "Error: Invalid port number / password!" << std::endl;
 		// 	return (1);
 		// }
-		// serv.initServer(atoi(argv[1]), argv[2]);
+		// serv.initialize(atoi(argv[1]), argv[2]);
 		// serv.checkPollEvents();
 	// } catch(const std::exception& e)
 	// {

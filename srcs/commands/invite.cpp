@@ -42,7 +42,7 @@ void Server::INVITE(std::string message, int fd)
         notifyUsers(ERR_USERONCHANNEL(user->getNickname(), invitedUserName, channelName), fd);
         return;
     }
-    User *invitedUser = getClientByNickname(invitedUserName);
+    User *invitedUser = getUserByNickname(invitedUserName);
     if (invitedUser != NULL)
     {
         invitedUser->addInvitation(channelName);

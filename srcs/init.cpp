@@ -4,7 +4,7 @@
 bool Server::signal = false;
 
 
-void Server::initServer(int port, std::string pass)
+void Server::initialize(int port, std::string pass)
 {
     struct sockaddr_in addr;
 
@@ -15,42 +15,42 @@ void Server::initServer(int port, std::string pass)
     addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_port = htons(port);
 
-    sock_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock_fd < 0)
+    sockFd = socket(AF_INET, SOCK_STREAM, 0);
+    if (sockFd < 0)
     {
         std::cerr << "Error: socket creation failed." << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&sock_opt, sizeof(sock_opt)) < 0)
+    if (setsockopt(sockFd, SOL_SOCKET, SO_REUSEADDR, (char *)&sockOpt, sizeof(sockOpt)) < 0)
     {
         std::cerr << "Error: setting socket options failed." << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    if (fcntl(sock_fd, F_SETFL, O_NONBLOCK) < 0)
+    if (fcntl(sockFd, F_SETFL, O_NONBLOCK) < 0)
     {
         std::cerr << "Error: setting socket to non-blocking failed." << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    if (bind(sock_fd, (const struct sockaddr*)&addr, sizeof(addr)) < 0)
+    if (bind(sockFd, (const struct sockaddr*)&addr, sizeof(addr)) < 0)
     {
         std::cerr << "Error: binding socket failed." << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    if (listen(sock_fd, 3) < 0)
+    if (listen(sockFd, 3) < 0)
     {
         std::cerr << "Error: listening on socket failed." << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    std::cout << "Connect socket: FD[" << sock_fd << "]" << std::endl;
+    std::cout << "Connect socket: FD[" << sockFd << "]" << std::endl;
 
-    new_user.fd = sock_fd;
+    new_user.fd = sockFd;
     new_user.events = POLLIN;
-    poll_fd.push_back(new_user);
+    pollFds.push_back(new_user);
 }
 
 void Server::checkPollEvents()
@@ -59,18 +59,18 @@ void Server::checkPollEvents()
 
     while (Server::signal == false)
     {
-        status = poll(&poll_fd[0], poll_fd.size(), 5000);
+        status = poll(&pollFds[0], pollFds.size(), 5000);
         if (status < 0 && Server::signal == false)
             throw(std::runtime_error("poll() failed"));
 
-        for (size_t i = 0; i < poll_fd.size(); i++)
+        for (size_t i = 0; i < pollFds.size(); i++)
         {
-            if (poll_fd[i].revents & POLLIN)
+            if (pollFds[i].revents & POLLIN)
             {
-                if (poll_fd[i].fd == sock_fd)
+                if (pollFds[i].fd == sockFd)
                     Server::acceptNewClient();
                 else
-                    Server::handleData(poll_fd[i].fd);
+                    Server::handleData(pollFds[i].fd);
             }
         }
     }
@@ -78,7 +78,7 @@ void Server::checkPollEvents()
     closeFd();
 }
 
-// Traite les connexions entrantes sur le socket du serveur (sock_fd)
+// Traite les connexions entrantes sur le socket du serveur (sockFd)
 // et crée un nouveau socket dédié pour chaque connexion acceptée
 void Server::acceptNewClient()
 {
@@ -87,7 +87,7 @@ void Server::acceptNewClient()
     struct sockaddr_in client_addr;
     socklen_t socklen = sizeof(client_addr);
 
-    cli_sock = accept(sock_fd, (sockaddr *)&client_addr, &socklen);
+    cli_sock = accept(sockFd, (sockaddr *)&client_addr, &socklen);
     if (cli_sock == -1)
     {
         std::cerr << "Error: Server::acceptNewClient(): accept() failed." << std::endl;
@@ -109,7 +109,7 @@ void Server::acceptNewClient()
 
     sock_user.push_back(client);
 
-    poll_fd.push_back(new_user);
+    pollFds.push_back(new_user);
 
     std::cout << "FD[" << cli_sock << "] connected" << std::endl;
 }
@@ -129,9 +129,9 @@ void Server::handleData(int fd)
     if (bytes <= 0)
     {
         std::cout << "FD[" << fd << "] disconnected" << std::endl;
-        clearChannel(fd);
-        removeClient(fd);
-        removeFd(fd);
+        clearEmptyChannels(fd);
+        removeUserByFd(fd);
+        removePollFd(fd);
         close(fd);
     }
     else

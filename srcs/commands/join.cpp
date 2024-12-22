@@ -33,105 +33,77 @@ void Server::JOIN(std::string message, int fd)
     }
 }
 
-// // Method to split the JOIN message into channel names and keys
-// int Server::splitJoinParams(std::vector<std::pair<std::string, std::string> > &param, std::string message, int fd)
-// {
-//     std::vector<std::string> vec;
-//     std::istringstream ss(message);
-//     std::string line;
-//     std::string channel;
-//     std::string key;
-//     std::string str;
-
-//     while (std::getline(ss, line, ' '))
-//         vec.push_back(line);
-
-//     if (vec.size() < 2)
-//     {
-//         param.clear();
-//         return 0;
-//     }
-//     vec.erase(vec.begin());
-//     channel = vec[0];
-//     vec.erase(vec.begin());
-//     if (!vec.empty())
-//     {
-//         key = vec[0];
-//         vec.clear();
-//     }
-//     for (size_t i = 0; i < channel.size(); i++)
-//     {
-//         if (channel[i] == ',')
-//         {
-//             param.push_back(std::make_pair(str, ""));
-//             str.clear();
-//         }
-//         else
-//             str += channel[i];
-//     }
-//     param.push_back(std::make_pair(str, ""));
-//     if (!key.empty())
-//     {
-//         size_t j = 0;
-//         str.clear();
-//         for (size_t i = 0; i < key.size(); i++)
-//         {
-//             if (key[i] == ',')
-//             {
-//                 param[j].second = str;
-//                 j++;
-//                 str.clear();
-//             }
-//             else
-//                 str += key[i];
-//         }
-//         param[j].second = str;
-//     }
-//     for (size_t i = 0; i < param.size(); i++)
-//     {
-//         if (param[i].first.empty())
-//             param.erase(param.begin() + i--);
-//     }
-//     for (size_t i = 0; i < param.size(); i++)
-//     {
-//         if (*(param[i].first.begin()) != '#')
-//         {
-//             notifyClient2(403, getClientByFd(fd)->getNickname(), param[i].first, getClientByFd(fd)->getFduser(), " :No such channel\r\n");
-//             param.erase(param.begin() + i--);
-//         }
-//         else
-//             param[i].first.erase(param[i].first.begin());
-//     }
-//     return 1;
-// }
-
-int Server::splitJoinParams(std::vector<std::pair<std::string, std::string> > &params, std::string message, int fd) {
+// Method to split the JOIN message into channel names and keys
+int Server::splitJoinParams(std::vector<std::pair<std::string, std::string> > &param, std::string message, int fd)
+{
+    std::vector<std::string> vec;
     std::istringstream ss(message);
-    std::string channels, keys;
+    std::string line;
+    std::string channel;
+    std::string key;
+    std::string str;
 
-    // Extract channels and keys
-    ss >> channels >> keys;
+    while (std::getline(ss, line, ' '))
+        vec.push_back(line);
 
-    if (channels.empty()) {
-        return 0; // No channels specified
+    if (vec.size() < 2)
+    {
+        param.clear();
+        return 0;
     }
-
-    // Split the channels and keys by commas
-    std::vector<std::string> channelList = splitByDelimiter(channels, ',');
-    std::vector<std::string> keyList = splitByDelimiter(keys, ',');
-
-    // Pair channels with their corresponding keys (or empty string if no key)
-    for (size_t i = 0; i < channelList.size(); ++i) {
-        if (channelList[i].empty() || channelList[i][0] != '#') {
-            notifyClient2(403, getClientByFd(fd)->getNickname(), channelList[i], getClientByFd(fd)->getFduser(), " :No such channel\r\n");
-            continue;
+    vec.erase(vec.begin());
+    channel = vec[0];
+    vec.erase(vec.begin());
+    if (!vec.empty())
+    {
+        key = vec[0];
+        vec.clear();
+    }
+    for (size_t i = 0; i < channel.size(); i++)
+    {
+        if (channel[i] == ',')
+        {
+            param.push_back(std::make_pair(str, ""));
+            str.clear();
         }
-        params.push_back(std::make_pair(channelList[i].substr(1), i < keyList.size() ? keyList[i] : ""));
+        else
+            str += channel[i];
     }
-
-    return !params.empty();
+    param.push_back(std::make_pair(str, ""));
+    if (!key.empty())
+    {
+        size_t j = 0;
+        str.clear();
+        for (size_t i = 0; i < key.size(); i++)
+        {
+            if (key[i] == ',')
+            {
+                param[j].second = str;
+                j++;
+                str.clear();
+            }
+            else
+                str += key[i];
+        }
+        param[j].second = str;
+    }
+    for (size_t i = 0; i < param.size(); i++)
+    {
+        if (param[i].first.empty())
+            param.erase(param.begin() + i--);
+    }
+    for (size_t i = 0; i < param.size(); i++)
+    {
+        if (*(param[i].first.begin()) != '#')
+        {
+            notifyClient2(403, getClientByFd(fd)->getNickname(), param[i].first, getClientByFd(fd)->getFduser(), " :No such channel\r\n");
+            param.erase(param.begin() + i--);
+        }
+        else
+            param[i].first.erase(param[i].first.begin());
+    }
+    return 1;
 }
-
 
 // Add a user to an existing channel
 void Server::addClientToExistChannel(std::vector<std::pair<std::string, std::string> > &param, int i, int j, int fd)
@@ -178,7 +150,7 @@ void Server::addClientToExistChannel(std::vector<std::pair<std::string, std::str
     channel[j].broadcastMessage2(RPL_JOIN(getClientByFd(fd)->getHostname(), getClientByFd(fd)->getIp(), param[i].first), fd);
 }
 
-// Add a user in a new channel that we are going to create
+// Add a user to a new channel to be created
 void Server::createAndAddToNewChannel(std::vector<std::pair<std::string, std::string> > &param, int i, int fd)
 {
     User *user = getClientByFd(fd);

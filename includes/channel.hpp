@@ -7,7 +7,7 @@
 #include <iostream>
 #include <stdexcept>
 #include "user.hpp"
-
+#include "colors.hpp"
 class User;
 
 class Channel {

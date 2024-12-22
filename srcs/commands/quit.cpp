@@ -38,9 +38,9 @@ void Server::QUIT(std::string message, int fd)
      // Notify user and perform cleanup
     notifyUsers(": leaving Server\r\n", fd);
     std::cout << "FD[" << fd << "] disconnected" << std::endl;
-    clearChannel(fd);
-    removeClient(fd);
-    removeFd(fd);
+    clearEmptyChannels(fd);
+    removeUserByFd(fd);
+    removePollFd(fd);
     close(fd);
 }
 

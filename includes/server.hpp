@@ -1,5 +1,4 @@
-#ifndef SERVER_HPP
-#define SERVER_HPP
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -23,12 +22,17 @@
 #include "user.hpp"
 #include "channel.hpp"
 #include "replies.hpp"
+#include "colors.hpp"
+// #define RESET   "\033[0m"
+// #define RED     "\033[38;5;196m"   // Bright red
+// #define GREEN   "\033[38;5;46m"    // Bright green
+// #define BLUE    "\033[38;5;27m"    // Bright blue
+// #define PURPLE  "\033[38;5;129m"   // Exotic purple
+// #define ORANGE  "\033[38;5;208m"   // Exotic orange
+// #define CYAN    "\033[38;5;51m"    // Exotic cyan
+// #define RARROW  "\u2B9E "          // Right arrow
+// #define LARROW  "\u2B9C "          // Left arrow
 
-#define RESET   "\033[0m"
-#define RED     "\033[31m"
-#define GREEN   "\033[32m"
-#define RARROW  "\u2B9E "
-#define LARROW  "\u2B9C "
 
 class User;
 class Channel;
@@ -36,56 +40,65 @@ class Channel;
 class Server
 {
 private:
-    int sock_fd;
+    int sockFd;
     int  port;
     std::string	password;
-    int	poll_nb;
+    int	pollNb;
     int	status;
-    int	user_max;
-    int sock_opt;
+    int	userMax;
+    int sockOpt;
     int	addr_size;
     static bool signal;
     struct pollfd	new_user;
-    std::vector<struct pollfd>	poll_fd;
+    std::vector<struct pollfd>	pollFds;
     std::vector<User>	sock_user;
     std::vector<Channel>	channel;
     std::map<int, std::string>	buff;
 
+    void logMessage(const std::string& message, const std::string& color = RESET) const;
+
 public:
     Server();
-    Server(Server const &obj);
-    Server &operator=(Server const &obj);
+    Server(const Server &obj);
+    Server &operator=(const Server &obj);
     ~Server();
 
-    int	getSockFd();
-    int	getPort();
+    // Getters
+    int	getSockFd() const;
+    int	getPort() const;
     int	getFdByNick(std::string nickname);
-    std::string	getPassword();
+    const std::string	getPassword() const;
     User	*getClientByFd(int fd);
-    User	*getClientByNickname(std::string nickname);
-    Channel	*getChannel(std::string name);
+    User	*getUserByNickname(const std::string nickname);
+    Channel	*getChannel(const std::string name);
 
-    void	setSockFd(int sock_fd);
+    // Setters
+    void	setSocketFd(int fd);
     void	setPort(int port);
-    void	setPassword(std::string password);
+    void	setPassword(const std::string password);
     void	setNewUser(User newuser);
     void	setNewChannel(Channel newchannel);
     void	setPollfd(pollfd fd);
 
-    void	removeClient(int fd);
-    void	removeFd(int fd);
-    void	clearChannel(int fd);
+    // User and Channel Management
+    void	removeUserByFd(int fd);
+    void	removePollFd(int fd);
+    void	clearEmptyChannels(int fd);
 
+    // Messaging
     void	notifyUsers(std::string message, int fd);
     void	notifyClient2(int errnum, std::string user, std::string channel, int fd, std::string message);
     void	notifyClient3(int errnum, std::string user, int fd, std::string message);
-
+    void    notifyClient(int errorCode, const std::string& user, const std::string& additionalInfo, int fd, const std::string& message);
+    
+    // Validation
     void	closeFd();
-    bool	isPortValid(std::string port);
+    bool	isPortValid(const std::string& port) const;
     bool	isRegistered(int fd);
     bool	isChannelAvailable(std::string channelName);
 
-    void	initServer(int port, std::string pass);
+    // Server Initialization
+    void	initialize(int port, std::string pass);
     void	checkPollEvents();
     void	acceptNewClient();
     void	handleData(int fd);
@@ -96,6 +109,8 @@ public:
     std::vector<std::string>	extractParams(std::string &message);
     std::vector<std::string>	dissectMessage(std::string &message);
     std::vector<std::string>	splitBuffer(std::string buff);
+
+    // Command Handling
     void	processCommand(std::string &command, int fd);
 
     void	PASS(std::string message, int fd);
@@ -165,5 +180,3 @@ public:
     // void        handleInvite(const std::string& invitedUserName, const std::string& channelName, User* sender, Channel* channel);
     // std::vector<std::string>    extractParams(const std::string& message);
 };
-
-#endif

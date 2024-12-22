@@ -1,8 +1,12 @@
-#ifndef USER_HPP
-#define USER_HPP
+#pragma once
 
 #include "server.hpp"
 #include "channel.hpp"
+#include "colors.hpp"
+#include <string>
+#include <vector>
+#include <ctime>
+#include <algorithm>
 
 class Channel;
 
@@ -21,47 +25,47 @@ private:
     bool                                chanFounder;
     time_t                              created;
     std::vector<std::string>            invitation;
-    std::vector<std::pair<char, bool> > userModes;
+    std::vector<std::pair<char, bool> > userModes;// User mode flags (e.g., 'i', 'o')
 
 public:
     User();
-    User(int fd, std::string nickname, std::string user);
-    User(User const &obj);
-    User &operator=(User const &obj);
-    bool operator==(User const &rhs);
+    User(int fd, const std::string& nickname, const std::string& user);
+    User(const User &obj);
+    User &operator=(const User &obj);
+    bool operator==(const User &rhs);
     ~User();
 
-    int                 getFduser();
+    // Getters
+    int                 getFduser() const;
     std::string         &getNickname();
     std::string         getUser();
-    std::string         getIp();
-    std::string         getBuffer();
+    std::string         getIp() const;
+    std::string         getBuffer() const;
     std::string         getHostname();
-    std::string         getUserModes();
+    std::string         getUserModes() const;
     std::string         getRealname() const;
-    bool                isRegistered();
+    bool                isRegistered() const;
     bool                isConnected();
     bool                isInvited(std::string &channel);
-    bool                isOperator();
-    bool                getUserModeOption(size_t i);
-    bool                isChannelFounder();
+    bool                isOperator() const;
+    bool                getUserModeOption(size_t i) const;
+    bool                isChannelFounder() const;
     time_t              getCreationTime() const;
-
+    // Setters
     void setFduser(int fd);
     void setNickname(const std::string &nickname);
     void setUser(std::string &user);
     void setIp(std::string ip);
-    void setBuffer(std::string recv);
+    void setBuffer(const std::string recv);
     void setRegistered(bool val);
     void setConnected(bool val);
     void setOperator(bool op);
     void setChannelFounder(bool founder);
     void setUserMode(size_t i, bool mode);
-    void setRealname(std::string realname);
+    void setRealname(const std::string realname);
 
+    // Utilities
     void clearBuffer();
-    void addInvitation(std::string &channel);
-    void removeInvitation(std::string &channel);
+    void addInvitation(const std::string &channel);
+    void removeInvitation(const std::string &channel);
 };
-
-#endif

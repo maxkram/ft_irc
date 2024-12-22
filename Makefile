@@ -12,7 +12,7 @@ OBJS            =   $(SRCS:$(SRC_DIR)/%.cpp=$(BIN_DIR)/%.o)
 
 # Compiler Settings
 CC              =   c++
-CPPFLAGS        =   -std=c++98 -Wall -Wextra -Werror -I$(INC_DIR)
+CPPFLAGS        =   -std=c++98 -Wall -Wextra -Werror -g -I$(INC_DIR)
 RM              =   rm -rf
 
 # Targets
@@ -24,7 +24,7 @@ all: $(NAME)
 # Build the binary
 $(NAME): $(OBJS)
 	$(CC) $(CPPFLAGS) $(OBJS) -o $(NAME)
-	@echo "Build complete: $(NAME)"
+	@echo "\033[1;32mBuild complete: $(NAME)\033[0m"
 
 # Compile source files into object files
 $(BIN_DIR)/%.o: $(SRC_DIR)/%.cpp
