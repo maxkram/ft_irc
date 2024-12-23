@@ -1,12 +1,12 @@
-#pragma once
-#include "colors.hpp"
+#ifndef REPLIES_HPP
+#define REPLIES_HPP
+
 #define ERR_NOTENOUGHPARAMETERS(client) (": 461 " + client + " :Not enough parameters\r\n")
 #define ERR_PASSWORDINCORECT(client) (": 464 " + client + " :Password incorrect\r\n")
 #define ERR_ALREADYREGISTERED(client) (": 462 " + client + " :You may not reregister\r\n")
 #define ERR_NICKNAMEINUSE(client, nick) (": 433 " + client + " " + nick + " :Nickname is already in use\r\n")
 #define ERR_ERRONEUSNICKNAME(client) (": 432 " + client + " :Erroneus nickname\r\n")
-// #define ERR_NOTREGISTERED(client) (": 451 " + client + " :You have not registered!\r\n")
-#define ERR_NOTREGISTERED(client) (std::string(": 451 ") + client + " :You have not registered!\r\n")
+#define ERR_NOTREGISTERED(client) (": 451 " + client + " :You have not registered!\r\n")
 #define ERR_NOSUCHCHANNEL(client, channel) (": 403 " + client + " " + channel + " :No such channel\r\n")
 #define ERR_NOTOPERATOR(client, channel) (": 482 " + client + " #" + channel + " :You're not a channel operator\r\n")
 #define ERR_UNKNOWNMODE(nickname, channel, mode) ": 472 " + nickname + " #" + channel + " " + mode + " :is not a recognised channel mode\r\n"
@@ -39,3 +39,5 @@
 #define RPL_INVITE(client, nickname, channel) (": 341 " + client + " invite " + nickname + " to #" + channel + "\r\n")
 #define RPL_PRIVMSGCHANNEL(hostname, ipaddress, receiver, message) (":" + hostname + "@" + ipaddress + " PRIVMSG " + "#" + receiver + " " + message + "\r\n")
 #define RPL_PRIVMSGUSER(hostname, ipaddress, receiver, message) (":" + hostname + "@" + ipaddress + " PRIVMSG " + receiver + " " + message + "\r\n")
+
+#endif

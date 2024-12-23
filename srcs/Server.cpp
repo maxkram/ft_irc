@@ -1,77 +1,54 @@
 #include "../includes/server.hpp"
 
-// Helper Logging Function
-void Server::logMessage(const std::string& message, const std::string& color) const {
-    std::cout << color << message << RESET << std::endl;
+Server::Server()
+{
+	std::cout << GREEN << "-------------- SERVER --------------" << RESET << std::endl;
+	this->sock_fd = -1;
+	sock_opt = 1;
+	poll_nb = 10;
+	user_max = 10;
 }
 
-// // Constructor
-// Server::Server()
-// {
-// 	std::cout << GREEN << "-------------- SERVER --------------" << RESET << std::endl;
-// 	this->sockFd = -1;
-// 	sockOpt = 1;
-// 	pollNb = 10;
-// 	userMax = 10;
-// }
-
-// Constructor
-Server::Server() : sockFd(-1), pollNb(10), userMax(10), sockOpt(1) {
-    logMessage("Server initialized", GREEN);
-}
-
-// Constructeur de copie
-Server::Server(Server const &obj) {
+Server::Server(Server const &obj)
+{
 	*this = obj;
 }
 
-// Opérateur d'affectation
 Server &Server::operator=(Server const &obj){
 	if (this != &obj)
 	{
-		this->sockFd = obj.sockFd;
+		this->sock_fd = obj.sock_fd;
 		this->port = obj.port;
 		this->password = obj.password;
 		this->sock_user = obj.sock_user;
-		this->pollFds = obj.pollFds;
+		this->poll_fd = obj.poll_fd;
 	}
 	return *this;
 }
 
-// // Destructeur
-// Server::~Server()
-// {
-// 	std::cout << RED << "----------- SERVER CLOSED -----------" << RESET << std::endl;
-// }
-
-// Destructor
-Server::~Server() {
-    logMessage("Server shutting down", RED);
-    for (size_t i = 0; i < sock_user.size(); ++i) {
-        close(sock_user[i].getFduser());
-    }
-    if (sockFd != -1) {
-        close(sockFd);
-    }
+Server::~Server()
+{
+	std::cout << RED << "----------- SERVER CLOSED -----------" << RESET << std::endl;
 }
 
-// Getters
+int	Server::getSockFd()
+{
+	return (this->sock_fd);
+}
 
-// Get the server socket descriptor
-int	Server::getSockFd() const { return (this->sockFd); }
+int	Server::getPort()
+{
+	return (this->port);
+}
 
-// Get the port number the server is listening on
-int	Server::getPort() const { return (this->port); }
-
-// Get the server password
-const std::string	Server::getPassword() const { return (this->password); }
-
-// Get the file descriptor of a user by their nickname
-int	Server::getFdByNick(std::string nickname) {
+int	Server::getFdByNick(std::string nickname)
+{
 	int	fd;
 
-	for (size_t i = 0; i < sock_user.size(); i++) {
-		if (nickname == sock_user[i].getNickname()) {
+	for (size_t i = 0; i < sock_user.size(); i++)
+	{
+		if (nickname == sock_user[i].getNickname())
+		{
 			fd = sock_user[i].getFduser();
 			return (fd);
 		}
@@ -79,57 +56,72 @@ int	Server::getFdByNick(std::string nickname) {
 	return (-1);
 }
 
+std::string	Server::getPassword()
+{
+	return (this->password);
+}
 
-// Get a pointer to a user by its file descriptor
-User	*Server::getClientByFd(int fd) {
-	for (size_t i = 0; i < sock_user.size(); i++) {
-		if (sock_user[i].getFduser() == fd)
-			return (&sock_user[i]);
+User	*Server::getClientByFd(int fd)
+{
+	for (size_t i = 0; i < sock_user.size(); i++)
+	{
+		if (this->sock_user[i].getFduser() == fd)
+			return (&this->sock_user[i]);
 	}
 	return (NULL);
 }
 
-// Get a pointer to a user by their nickname
-User	*Server::getUserByNickname(const std::string nickname) {
-	for (size_t i = 0; i < sock_user.size(); i++) {
-		if (sock_user[i].getNickname() == nickname)
-			return (&sock_user[i]);
+User	*Server::getClientByNickname(std::string nickname)
+{
+	for (size_t i = 0; i < sock_user.size(); i++)
+	{
+		if (this->sock_user[i].getNickname() == nickname)
+			return (&this->sock_user[i]);
 	}
 	return (NULL);
 }
 
-// Get a pointer to a channel by name
-Channel	*Server::getChannel(const std::string name) {
-	for (size_t i = 0; i < channel.size(); i++) {
-		if (channel[i].getChannelName() == name)
+Channel	*Server::getChannel(std::string name)
+{
+	for (size_t i = 0; i < this->channel.size(); i++)
+	{
+		if (this->channel[i].getChannelName() == name)
 			return (&channel[i]);
 	}
 	return (NULL);
 }
 
-// Setters
-// Set the server socket file descriptor
-void Server::setSocketFd(int fd) { sockFd = fd; }
+void Server::setSockFd(int fd)
+{
+    this->sock_fd = fd;
+}
 
-// Set the port on which the server should listen for incoming connections
-void Server::setPort(int port) { this->port = port; }
+void Server::setPort(int port)
+{
+    this->port = port;
+}
 
-// Set the password needed to connect to the server
-void Server::setPassword(const std::string password) { this->password = password; }
+void Server::setPassword(std::string password)
+{
+    this->password = password;
+}
 
-// Add a new user to the list of clients connected to the server
-void Server::setNewUser(User newuser) { this->sock_user.push_back(newuser); }
+void Server::setNewUser(User newuser)
+{
+    this->sock_user.push_back(newuser);
+}
 
-// Adds a new channel to the list of channels available on the server
-void Server::setNewChannel(Channel newchannel) { this->channel.push_back(newchannel); }
+void Server::setNewChannel(Channel newchannel)
+{
+    this->channel.push_back(newchannel);
+}
 
-// Add a pollfd structure to the list of descriptors to monitor
-void Server::setPollfd(pollfd fd) { this->pollFds.push_back(fd); }
+void Server::setPollfd(pollfd fd)
+{
+    this->poll_fd.push_back(fd);
+}
 
-// User and Channel Management
-
-// Remove a user from the client list using their file descriptor
-void Server::removeUserByFd(int fd)
+void Server::removeClient(int fd)
 {
     for (size_t i = 0; i < this->sock_user.size(); i++)
     {
@@ -141,67 +133,59 @@ void Server::removeUserByFd(int fd)
     }
 }
 
-// Remove a file descriptor from the pollFds watchlist
-void Server::removePollFd(int fd)
+void Server::removeFd(int fd)
 {
-    for (size_t i = 0; i < this->pollFds.size(); i++)
+    for (size_t i = 0; i < this->poll_fd.size(); i++)
     {
-        if (this->pollFds[i].fd == fd)
+        if (this->poll_fd[i].fd == fd)
         {
-            this->pollFds.erase(this->pollFds.begin() + i);
+            this->poll_fd.erase(this->poll_fd.begin() + i);
             return;
         }
     }
 }
 
-// Clean up channels by deleting a specific user and removing empty channels
-// void Server::clearEmptyChannels(int fd)
-// {
-//     int flag;
-//     std::string reply;
+void Server::clearChannel(int fd)
+{
+    int flag;
+    std::string reply;
 
-//     for (size_t i = 0; i < this->channel.size(); i++) {
-//         flag = 0;
-//         if (channel[i].getUserByFd(fd)) {
-//             channel[i].removeUserByFd(fd);
-//             flag = 1;
-//         }
-//         else if (channel[i].getOperatorByFd(fd)) {
-//             channel[i].removeOperatorByFd(fd);
-//             flag = 1;
-//         }
-//         if (channel[i].getUserCount() == 0) {
-//             channel.erase(channel.begin() + i);
-//             i--;
-//             continue;
-//         }
-//         if (flag) {
-//             reply = ":" + getClientByFd(fd)->getNickname() + "!~" + getClientByFd(fd)->getUser() + "@localhost QUIT Quit\r\n";
-//             channel[i].broadcastMessage(reply);
-//         }
-//     }
-// }
-
-void Server::clearEmptyChannels(int fd) {
-    for (size_t i = 0; i < channel.size(); ++i) {
-        channel[i].removeUserByFd(fd);
-        channel[i].removeOperatorByFd(fd);
-        if (channel[i].getUserCount() == 0) {
+    for (size_t i = 0; i < this->channel.size(); i++)
+    {
+        flag = 0;
+        if (channel[i].getUserByFd(fd))
+        {
+            channel[i].removeUserByFd(fd);
+            flag = 1;
+        }
+        else if (channel[i].getOperatorByFd(fd))
+        {
+            channel[i].removeOperatorByFd(fd);
+            flag = 1;
+        }
+        if (channel[i].getUserCount() == 0)
+        {
             channel.erase(channel.begin() + i);
-            --i;
+            i--;
+            continue;
+        }
+        if (flag)
+        {
+            reply = ":" + getClientByFd(fd)->getNickname() + "!~" + getClientByFd(fd)->getUser() + "@localhost QUIT Quit\r\n";
+            channel[i].broadcastMessage(reply);
         }
     }
 }
 
-// // // Send a message to a specific socket (fd);
-void Server::notifyUsers(std::string message, int fd) {
+void Server::notifyUsers(std::string message, int fd)
+{
     std::cout << GREEN << RARROW << RESET << message;
     if (send(fd, message.c_str(), message.size(), 0) == -1)
         std::cerr << "send() failed" << std::endl;
 }
 
-// Format and send a message with an error code and additional information
-void Server::notifyClient2(int errnum, std::string user, std::string channel, int fd, std::string message) {
+void Server::notifyClient2(int errnum, std::string user, std::string channel, int fd, std::string message)
+{
     std::stringstream ss;
     std::string rep;
 
@@ -211,8 +195,8 @@ void Server::notifyClient2(int errnum, std::string user, std::string channel, in
         std::cerr << "send() failed" << std::endl;
 }
 
-// Format and send a message with an error code and additional information, without channel name
-void Server::notifyClient3(int errnum, std::string user, int fd, std::string message) {
+void Server::notifyClient3(int errnum, std::string user, int fd, std::string message)
+{
     std::stringstream ss;
     std::string rep;
 
@@ -222,22 +206,28 @@ void Server::notifyClient3(int errnum, std::string user, int fd, std::string mes
         std::cerr << "send() failed" << std::endl;
 }
 
-// Close all open file descriptors (sockets) for clients and for the server itself
-void Server::closeFd() {
+void Server::closeFd()
+{
     for (size_t i = 0; i < sock_user.size(); i++)
     {
-        std::cout << "FD[" << sockFd << "] disconnected" << std::endl;
+        std::cout << "FD[" << sock_fd << "] disconnected" << std::endl;
         close(sock_user[i].getFduser());
     }
-    if (sockFd != -1)
+    if (sock_fd != -1)
     {
-        std::cout << "Server (FD[" << sockFd << "]) disconnected" << std::endl;
-        close(sockFd);
+        std::cout << "Server (FD[" << sock_fd << "]) disconnected" << std::endl;
+        close(sock_fd);
     }
 }
 
-// Check if a user is registered on the server
-bool Server::isRegistered(int fd) {
+bool Server::isPortValid(std::string port)
+{
+    return (port.find_first_not_of("0123456789") == std::string::npos &&
+            atoi(port.c_str()) >= 1024 && atoi(port.c_str()) <= 65535);
+}
+
+bool Server::isRegistered(int fd)
+{
     if (!getClientByFd(fd) || getClientByFd(fd)->getNickname().empty() || 
         getClientByFd(fd)->getUser().empty() || getClientByFd(fd)->getNickname() == "*" || 
         !getClientByFd(fd)->isConnected())
@@ -245,7 +235,6 @@ bool Server::isRegistered(int fd) {
     return (true);
 }
 
-// Check if a channel already exists on the server
 bool Server::isChannelAvailable(std::string channelName)
 {
     if (channelName.empty() || channelName.size() <= 2 || channelName[0] != '#')

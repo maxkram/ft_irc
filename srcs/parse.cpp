@@ -1,6 +1,5 @@
 #include "../includes/server.hpp"
 
-// Avance l'index jusqu'au prochain espace dans la chaîne de caractères
 void goToNextSpace(std::string s, size_t *i)
 {
     while (s[*i] != 0 && s[*i] != ' ')
@@ -9,7 +8,6 @@ void goToNextSpace(std::string s, size_t *i)
     }
 }
 
-// Sépare les paramètres d'une commande en trois parties maximum
 int Server::splitParams(std::string params, std::string splitParams[3])
 {
     size_t i = 0;
@@ -33,7 +31,6 @@ int Server::splitParams(std::string params, std::string splitParams[3])
     return (0);
 }
 
-// Analyse la syntaxe de la commande PRIVMSG et vérifie si les paramètres sont corrects
 int Server::validatePrivmsgSyntax(std::string split_mess[3], std::string split_params[3])
 {
     if (split_mess[2].empty())
@@ -50,7 +47,6 @@ int Server::validatePrivmsgSyntax(std::string split_mess[3], std::string split_p
     return (0);
 }
 
-// Sépare un message en trois parties : préfixe, commande, et paramètres
 int Server::splitMessage(std::string message, std::string split_mess[3])
 {
     std::string s_tmp;
@@ -84,7 +80,6 @@ int Server::splitMessage(std::string message, std::string split_mess[3])
     return (0);
 }
 
-// Analyse le message et le divise en trois parties : préfixe, commande et paramètres
 std::vector<std::string> Server::dissectMessage(std::string &message)
 {
     std::vector<std::string> commandParams;
@@ -100,7 +95,6 @@ std::vector<std::string> Server::dissectMessage(std::string &message)
     return commandParams;
 }
 
-// Sépare les paramètres d'un message en utilisant l'espace comme délimiteur
 std::vector<std::string> Server::extractParams(std::string& message)
 {
     std::vector<std::string> param;
@@ -115,7 +109,6 @@ std::vector<std::string> Server::extractParams(std::string& message)
     return param;
 }
 
-// Sépare le buff en lignes de commande en utilisant les délimiteurs de fin de ligne (\r\n)
 std::vector<std::string> Server::splitBuffer(std::string buff)
 {
     std::vector<std::string> commandParams;
@@ -135,7 +128,6 @@ std::vector<std::string> Server::splitBuffer(std::string buff)
     return commandParams;
 }
 
-// Analyse et exécute une commande IRC reçue par le serveur
 void Server::processCommand(std::string &message, int fd)
 {
     std::vector<std::string> commandParams;

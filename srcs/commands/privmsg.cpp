@@ -1,6 +1,5 @@
 #include "../../includes/server.hpp"
 
-// Fonction pour obtenir le nom du canal cible
 std::string Server::getChannelTarget(std::string &target)
 {
     Channel *ch = NULL;
@@ -12,7 +11,6 @@ std::string Server::getChannelTarget(std::string &target)
     return (std::string(""));
 }
 
-// Fonction pour obtenir le nom d'utilisateur cible à partir du descripteur de fichier
 std::string Server::getUserTarget(int fd)
 {
     User *us = NULL;
@@ -21,7 +19,6 @@ std::string Server::getUserTarget(int fd)
     return (us == NULL ? std::string("") : us->getNickname());
 }
 
-// Fonction pour analyser la commande PRIVMSG et gérer les erreurs
 int Server::handlePrivmsg(std::string split_message[3], std::string split_params[3], int fd)
 {
     switch (validatePrivmsgSyntax(split_message, split_params))
@@ -64,7 +61,7 @@ int Server::handlePrivmsg(std::string split_message[3], std::string split_params
     else
     {
         tmp = getUserTarget(fd);
-        if (tmp.empty() == 1 || getClientByFd(fd) == NULL || getUserByNickname(split_params[0]) == NULL)
+        if (tmp.empty() == 1 || getClientByFd(fd) == NULL || getClientByNickname(split_params[0]) == NULL)
         {
             notifyUsers(ERR_NOSUCHNICK(tmp), fd);
             return (1);
@@ -73,7 +70,6 @@ int Server::handlePrivmsg(std::string split_message[3], std::string split_params
     return (0);
 }
 
-// Fonction pour traiter la commande PRIVMSG (envoi de message privé)
 void Server::PRIVMSG(std::string &message, int fd)
 {
     std::string split_message[3] = {std::string(), std::string(), std::string()};
@@ -111,9 +107,9 @@ void Server::PRIVMSG(std::string &message, int fd)
     }
     else
     {
-        if (getClientByFd(fd)->getHostname() != getUserByNickname(split_params[0])->getHostname())
+        if (getClientByFd(fd)->getHostname() != getClientByNickname(split_params[0])->getHostname())
         {
-            notifyUsers(RPL_PRIVMSGUSER(getClientByFd(fd)->getHostname(), getClientByFd(fd)->getIp(), getUserByNickname(split_params[0])->getNickname(), split_params[1]), getUserByNickname(split_params[0])->getFduser());
+            notifyUsers(RPL_PRIVMSGUSER(getClientByFd(fd)->getHostname(), getClientByFd(fd)->getIp(), getClientByNickname(split_params[0])->getNickname(), split_params[1]), getClientByNickname(split_params[0])->getFduser());
         }
     }
 }

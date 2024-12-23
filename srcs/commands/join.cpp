@@ -1,6 +1,5 @@
 #include "../../includes/server.hpp"
 
-// Method to handle the JOIN command
 void Server::JOIN(std::string message, int fd)
 {
     std::vector<std::pair<std::string, std::string> > param;
@@ -33,7 +32,6 @@ void Server::JOIN(std::string message, int fd)
     }
 }
 
-// Method to split the JOIN message into channel names and keys
 int Server::splitJoinParams(std::vector<std::pair<std::string, std::string> > &param, std::string message, int fd)
 {
     std::vector<std::string> vec;
@@ -105,7 +103,6 @@ int Server::splitJoinParams(std::vector<std::pair<std::string, std::string> > &p
     return 1;
 }
 
-// Add a user to an existing channel
 void Server::addClientToExistChannel(std::vector<std::pair<std::string, std::string> > &param, int i, int j, int fd)
 {
     if (this->channel[j].getFindUserByName(getClientByFd(fd)->getNickname()))
@@ -150,7 +147,6 @@ void Server::addClientToExistChannel(std::vector<std::pair<std::string, std::str
     channel[j].broadcastMessage2(RPL_JOIN(getClientByFd(fd)->getHostname(), getClientByFd(fd)->getIp(), param[i].first), fd);
 }
 
-// Add a user to a new channel to be created
 void Server::createAndAddToNewChannel(std::vector<std::pair<std::string, std::string> > &param, int i, int fd)
 {
     User *user = getClientByFd(fd);
@@ -173,7 +169,6 @@ void Server::createAndAddToNewChannel(std::vector<std::pair<std::string, std::st
                 RPL_ENDOFNAMES(getClientByFd(fd)->getNickname(), newChannel.getChannelName()), fd);
 }
 
-// Count the number of channels the user is a member of
 int Server::channelUserCount(std::string user)
 {
     int count = 0;
@@ -186,7 +181,6 @@ int Server::channelUserCount(std::string user)
     return count;
 }
 
-// Check if the user has been invited to join a channel
 bool Server::isUserInvited(User *user, std::string channel, int flag)
 {
     if (user->isInvited(channel))
