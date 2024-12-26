@@ -2,14 +2,14 @@
 
 Channel::Channel()
 {
-    this->channelName = "";
-    this->topicName = "";
-    this->created_at = "";
-    this->topic = 0;
-    this->key = 0;
-    this->limit = 0;
-    this->invitOnly = 0;
-    this->topicRestriction = false;
+    channelName = "";
+    topicName = "";
+    created_at = "";
+    topic = 0;
+    key = 0;
+    limit = 0;
+    invitOnly = 0;
+    topicRestriction = false;
     
     char mode[5] = {'i', 't', 'k', 'o', 'l'};
     for (int i = 0; i < 5; i++)
@@ -29,18 +29,18 @@ Channel &Channel::operator=(Channel const &rhs)
 {
     if (this != &rhs)
     {
-        this->channelName = rhs.channelName;
-        this->topicName = rhs.topicName;
-        this->password = rhs.password;
-        this->topic = rhs.topic;
-        this->key = rhs.key;
-        this->limit = rhs.limit;
-        this->sock_user = rhs.sock_user;
-        this->admin = rhs.admin;
-        this->invitOnly = rhs.invitOnly;
-        this->topicRestriction = rhs.topicRestriction;
-        this->created_at = rhs.created_at;
-        this->channelMode = rhs.channelMode;
+        channelName = rhs.channelName;
+        topicName = rhs.topicName;
+        password = rhs.password;
+        topic = rhs.topic;
+        key = rhs.key;
+        limit = rhs.limit;
+        sock_user = rhs.sock_user;
+        admin = rhs.admin;
+        invitOnly = rhs.invitOnly;
+        topicRestriction = rhs.topicRestriction;
+        created_at = rhs.created_at;
+        channelMode = rhs.channelMode;
     }
     return (*this);
 }
@@ -57,7 +57,7 @@ std::string Channel::getTopicName()
 
 std::string Channel::getChannelPassword()
 {
-    return (this->password);
+    return (password);
 }
 
 std::string Channel::getUserList()
@@ -84,7 +84,7 @@ std::string Channel::getUserList()
 
 std::string Channel::getCreationDate()
 {
-    return (this->created_at);
+    return (created_at);
 }
 
 std::string Channel::getChannelModes()
@@ -149,27 +149,27 @@ User *Channel::getFindUserByName(std::string name)
 
 int Channel::getInviteOnlyStatus()
 {
-    return this->invitOnly;
+    return invitOnly;
 }
 
 int Channel::getTopicStatus()
 {
-    return this->topic;
+    return topic;
 }
 
 int Channel::getKeyStatus()
 {
-    return this->key;
+    return key;
 }
 
 int Channel::getUserLimit()
 {
-    return this->limit;
+    return limit;
 }
 
 bool Channel::getTopicRestriction() const
 {
-    return (this->topicRestriction);
+    return (topicRestriction);
 }
 
 bool Channel::getChannelModeOption(size_t i)
@@ -189,12 +189,12 @@ std::vector<User *> Channel::getUserPointers()
 
 void Channel::setChannelName(std::string name)
 {
-    this->channelName = name;
+    channelName = name;
 }
 
 void Channel::setTopicName(std::string topic)
 {
-    this->topicName = topic;
+    topicName = topic;
 }
 
 void Channel::setChannelPassword(std::string password)
@@ -237,7 +237,7 @@ void Channel::setCreationDate()
     std::time_t _time = std::time(NULL);
     std::ostringstream oss;
     oss << _time;
-    this->created_at = std::string(oss.str());
+    created_at = std::string(oss.str());
 }
 
 void Channel::removeUserByFd(int fd)
@@ -289,7 +289,7 @@ void Channel::checkChannelName(std::string channelName)
 
 size_t Channel::getUserCount()
 {
-    size_t num = this->sock_user.size() + this->admin.size();
+    size_t num = sock_user.size() + admin.size();
     return (num);
 }
 

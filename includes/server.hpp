@@ -130,7 +130,8 @@ public:
     void	    KICK(std::string message, int fd);
     std::string	splitKickParams(std::string message, std::vector<std::string> &param, std::string &user, int fd);
     std::string	kickReason(std::string &message, std::vector<std::string> &param);
-    void	    kickReason2(std::string message, std::string tofind, std::string &comment);
+    // void	    kickReason2(std::string message, std::string tofind, std::string &comment);
+    void        kickReason2(const std::string &message, const std::string &tofind, std::string &comment);
     
     void	TOPIC(std::string message, int fd);
     

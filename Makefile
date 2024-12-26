@@ -1,45 +1,74 @@
-# Project Name
+# Project Information
 NAME            =   ircserv
 
 # Directories
-SRC_DIR         =   srcs
-INC_DIR         =   includes
-BIN_DIR         =   $(SRC_DIR)/bin
+INC             =   includes/
+BIN             =   srcs/bin
 
 # Files
-SRCS            =   $(wildcard $(SRC_DIR)/**/*.cpp $(SRC_DIR)/*.cpp)
-OBJS            =   $(SRCS:$(SRC_DIR)/%.cpp=$(BIN_DIR)/%.o)
+SRCS            =   $(shell find srcs -type f -name "*.cpp")
+INCS            =   $(shell find inc -type f -name "*.hpp")
+OBJS            =   $(SRCS:srcs/%.cpp=srcs/bin/%.o)
 
-# Compiler Settings
+# Compiler and Flags
 CC              =   c++
-CPPFLAGS        =   -std=c++98 -Wall -Wextra -Werror -g -I$(INC_DIR)
 RM              =   rm -rf
+CPPFLAGS        =   -std=c++98 -Wall -Wextra -Werror
+
+# Exotic Colors
+BOLD_GREEN      =   \033[1;92m
+BOLD_CYAN       =   \033[1;96m
+BOLD_YELLOW     =   \033[1;93m
+BOLD_RED        =   \033[1;91m
+PURPLE          =   \033[1;95m
+BLUE            =   \033[1;94m
+RESET           =   \033[0m
 
 # Targets
-.PHONY: all clean fclean re
+all:            $(NAME)
 
-# Default target
-all: $(NAME)
+$(BIN):
+	@mkdir -p $(BIN)
+	@echo "$(BOLD_CYAN)🌟 Creating bin directory...$(RESET)"
 
-# Build the binary
-$(NAME): $(OBJS)
-	$(CC) $(CPPFLAGS) $(OBJS) -o $(NAME)
-	@echo "\033[1;32mBuild complete: $(NAME)\033[0m"
+$(NAME): $(BIN) $(OBJS)
+	@$(CC) $(CPPFLAGS) $(OBJS) -o $(NAME)
+	@echo "$(BOLD_GREEN)✅ Executable $(NAME) created successfully!$(RESET)"
+	@echo "$(BOLD_CYAN)✨ Run the server using the following command:$(RESET)"
+	@echo "$(BOLD_YELLOW)   ./$(NAME) 6667 mypassword$(RESET)"
 
-# Compile source files into object files
-$(BIN_DIR)/%.o: $(SRC_DIR)/%.cpp
-	@mkdir -p $(@D)  # Create necessary directories for the object files
-	$(CC) $(CPPFLAGS) -c $< -o $@
-
-# Clean object files
 clean:
-	$(RM) $(BIN_DIR)
-	@echo "Cleaned object files and directories."
+	@echo "$(PURPLE)🧹 Cleaning object files and binaries...$(RESET)"
+	@$(RM) $(OBJS)
+	@$(RM) $(BIN)
+	@echo "$(BOLD_GREEN)✔️  Clean completed!$(RESET)"
 
-# Clean all generated files
 fclean: clean
-	$(RM) $(NAME)
-	@echo "Fully cleaned project."
+	@echo "$(BOLD_RED)❌ Removing executable $(NAME)...$(RESET)"
+	@$(RM) $(NAME)
+	@echo "$(BOLD_GREEN)✔️  Full clean completed!$(RESET)"
 
-# Rebuild
 re: fclean all
+
+# Compilation Rules
+srcs/bin/%.o: srcs/%.cpp
+	@mkdir -p $(shell dirname $@)
+	@echo "$(BLUE)🚀 Compiling $<...$(RESET)"
+	@$(CC) $(CPPFLAGS) -c $< -o $@ -I$(INC)
+
+# Help Target
+help:
+	@echo "$(BOLD_CYAN)📘 How to Use the Application:$(RESET)"
+	@echo "$(BOLD_GREEN)1. Run the server using the following command:$(RESET)"
+	@echo "$(BOLD_YELLOW)   ./$(NAME) <localhost> <port> <password>$(RESET)"
+	@echo ""
+	@echo "$(BOLD_GREEN)2. Arguments:$(RESET)"
+	@echo "$(PURPLE)   <localhost>: The hostname or IP address to bind the server (e.g., 127.0.0.1).$(RESET)"
+	@echo "$(PURPLE)   <port>:      The port number for the server to listen on (e.g., 6667).$(RESET)"
+	@echo "$(PURPLE)   <password>:  The server password for authentication.$(RESET)"
+	@echo ""
+	@echo "$(BOLD_GREEN)Example:$(RESET)"
+	@echo "$(BOLD_YELLOW)   ./$(NAME) 6667 mypassword$(RESET)"
+
+# Phony Targets
+.PHONY: all clean fclean re help

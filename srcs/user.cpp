@@ -222,3 +222,4 @@ void User::removeInvitation(std::string &channel)
         }
     }
 }
+
