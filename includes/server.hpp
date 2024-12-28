@@ -1,5 +1,4 @@
-#ifndef SERVER_HPP
-#define SERVER_HPP
+#pragma once
 
 #include <iostream>
 #include <string>
@@ -25,8 +24,8 @@
 #include "replies.hpp"
 
 #define RESET   "\033[0m"
-#define RED     "\033[31m"
-#define GREEN   "\033[32m"
+#define RED     "\033[91m"
+#define GREEN   "\033[92m"
 #define RARROW  "\u2B9E "
 #define LARROW  "\u2B9C "
 
@@ -36,19 +35,19 @@ class Channel;
 class Server
 {
 private:
-    int sock_fd;
+    int serverSocketFd;
     int  port;
     std::string	password;
-    int	poll_nb;
+    int	maxPollEvents;
     int	status;
-    int	user_max;
-    int sock_opt;
-    int	addr_size;
+    int	maxUsers;
+    int socketOptions;
+    int	addressSize;
     static bool signal;
-    struct pollfd	new_user;
-    std::vector<struct pollfd>	poll_fd;
-    std::vector<User>	sock_user;
-    std::vector<Channel>	channel;
+    struct pollfd	newUserPollFd;
+    std::vector<struct pollfd>	pollFds;
+    std::vector<User>	connectedUsers;
+    std::vector<Channel>    channel;
     std::map<int, std::string>	buff;
 
 public:
@@ -57,31 +56,31 @@ public:
     Server &operator=(Server const &obj);
     ~Server();
 
-    int	getSockFd();
-    int	getPort();
-    int	getFdByNick(std::string nickname);
-    std::string	getPassword();
+    int	getServerSocketFd();
+    int	getServerPort();
+    int	getSocketFdByNickname(std::string nickname);
+    std::string	getServerPassword();
     User	*getClientByFd(int fd);
     User	*getClientByNickname(std::string nickname);
     Channel	*getChannel(std::string name);
 
-    void	setSockFd(int sock_fd);
-    void	setPort(int port);
-    void	setPassword(std::string password);
+    void	setServerSocketFd(int serverSocketFd);
+    void	setServerPort(int port);
+    void	setServerPassword(std::string password);
     void	setNewUser(User newuser);
     void	setNewChannel(Channel newchannel);
     void	setPollfd(pollfd fd);
 
     void	removeClient(int fd);
-    void	removeFd(int fd);
+    void	removePollFd(int fd);
     void	clearChannel(int fd);
 
     void	notifyUsers(std::string message, int fd);
-    void	notifyClient2(int errnum, std::string user, std::string channel, int fd, std::string message);
-    void	notifyClient3(int errnum, std::string user, int fd, std::string message);
+    void	sendErrorToClient(int errnum, std::string user, std::string channel, int fd, std::string message);
+    void	sendError(int errnum, std::string user, int fd, std::string message);
 
     void	closeFd();
-    bool	isPortValid(std::string port);
+    bool	validatePort(std::string port);
     bool	isRegistered(int fd);
     bool	isChannelAvailable(std::string channelName);
 
@@ -94,27 +93,27 @@ public:
     int	splitMessage(std::string message, std::string split_mess[3]);
     int	splitParams(std::string params, std::string split_params[3]);
     std::vector<std::string>	extractParams(std::string &message);
-    std::vector<std::string>	dissectMessage(std::string &message);
+    std::vector<std::string>	parseMessage(std::string &message);
     std::vector<std::string>	splitBuffer(std::string buff);
-    void	processCommand(std::string &command, int fd);
+    void	executeCommand(std::string &command, int fd);
 
     void	PASS(std::string message, int fd);
 
     void	NICK(std::string message, int fd);
-    bool	isNicknameUsed(std::string &nickname);
-    bool	validNickname(std::string &nickname);
+    bool	isNicknameTaken(std::string &nickname);
+    bool	isValidNickname(std::string &nickname);
     void	updateNicknameChannel(std::string old, std::string n_nick);
     
     void	USER(std::string &message, int fd);
     
     void	    QUIT(std::string message, int fd);
-    std::string	quitReason(std::string message);
-    void	    quitReason2(std::string message, std::string str, std::string &reason);
+    std::string	extractQuitReason(std::string message);
+    void	    appendQuitReason(std::string message, std::string str, std::string &reason);
     
     void	PING(std::string &message, int fd);
     
     void	JOIN(std::string message, int fd);
-    int	    splitJoinParams(std::vector<std::pair<std::string, std::string> > &param, std::string message, int fd);
+    int	    splitJoinParameters(std::vector<std::pair<std::string, std::string> > &param, std::string message, int fd);
     void	addClientToExistChannel(std::vector<std::pair<std::string, std::string> > &param, int i , int j, int fd);
     void	createAndAddToNewChannel(std::vector<std::pair<std::string, std::string> >&param, int i, int fd);
     int	    channelUserCount(std::string user);
@@ -129,23 +128,22 @@ public:
     
     void	    KICK(std::string message, int fd);
     std::string	splitKickParams(std::string message, std::vector<std::string> &param, std::string &user, int fd);
-    std::string	kickReason(std::string &message, std::vector<std::string> &param);
-    // void	    kickReason2(std::string message, std::string tofind, std::string &comment);
-    void        kickReason2(const std::string &message, const std::string &tofind, std::string &comment);
+    std::string	extractKickReason(std::string &message, std::vector<std::string> &param);
+    void	    appendKickReason(std::string message, std::string tofind, std::string &comment);
     
     void	TOPIC(std::string message, int fd);
     
     void	                    MODE_CHANNEL(std::string &message, int fd);
     void	                    parseChannelMode(std::string message, std::string &channelname, std::string &modestring, std::string &param);
     std::vector<std::string>	splitChannelMode(std::string param);
-    std::string	                updateMode(std::string ssmode, char addminus, char mode);
+    std::string	                applyModeChange(std::string ssmode, char addminus, char mode);
     std::string	                inviteOnly(Channel *channel, char addminus, std::string ssmode);
     std::string	                topicRestriction(Channel *channel, char addminus, std::string ssmode);
     std::string	                channelPassword(Channel *channel, char addminus, std::string ssmode, std::vector<std::string> paramsplit, std::string &arg, size_t &pos, int fd);
-    bool	                    isValidChannelPassword(std::string password);
+    bool	                    validateChannelPassword(std::string password);
     std::string	                operatorPrivilege(Channel *channel, char addminus, std::string ssmode, std::vector<std::string> paramsplit, std::string &arg, size_t &pos, int fd);
     std::string                 setUserLimit(Channel *channel, char addminus, std::string ssmode, std::vector<std::string> paramsplit, std::string &arg, size_t &pos, int fd);
-    bool	                    isValidUserLimit(std::string &limit);
+    bool	                    validateUserLimit(std::string &limit);
     
     void            PRIVMSG(std::string &message, int fd);
     std::string     getChannelTarget(std::string &target);
@@ -153,5 +151,3 @@ public:
     int	        validatePrivmsgSyntax(std::string split_mess[3], std::string split_params[3]);
     int	        handlePrivmsg(std::string split_message[3], std::string split_params[3], int fd);
 };
-
-#endif

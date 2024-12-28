@@ -1,5 +1,4 @@
-#ifndef CHANNEL_HPP
-#define CHANNEL_HPP
+#pragma once
 
 #include "server.hpp"
 #include "user.hpp"
@@ -13,14 +12,14 @@ private:
     std::string channelName;
     std::string topicName;
     std::string password;
-    std::string created_at;
+    std::string creationTime;
     int topic;
     int key;
     int limit;
     int invitOnly;
-    bool topicRestriction;
+    bool restrictTopic;
 
-    std::vector<User> sock_user;
+    std::vector<User> regularUsers;
     std::vector<User> admin;
     std::vector<std::pair<char, bool> > channelMode;
 
@@ -41,21 +40,21 @@ public:
     User *getUserByFd(int fd);
     User *getOperatorByFd(int fd);
     User *getFindUserByName(std::string name);
-    int getTopicStatus();
-    int getKeyStatus();
+    int isTopicSet();
+    int hasPassword();
     int getUserLimit();
-    int getInviteOnlyStatus();
-    bool getTopicRestriction() const;
-    bool getChannelModeOption(size_t i);
+    int isInviteOnly();
+    bool isTopicRestricted() const;
+    bool isModeEnabled(size_t i);
     std::vector<User *> getUserPointers();
 
     void setChannelName(std::string name);
-    void setTopicName(std::string topic);
-    void setChannelPassword(std::string password);
-    void setTopicStatus(int topic);
+    void setTopic(std::string topic);
+    void setPassword(std::string password);
+    void setTopicFlag(int topic);
     void setKeyStatus(int key);
     void setUserLimit(int limit);
-    void setInviteOnlyStatus(int invitOnly);
+    void setInviteOnly(int invitOnly);
     void setTopicRestriction(bool restriction);
     void setChannelMode(size_t i, bool mode);
     void setCreationDate();
@@ -64,20 +63,17 @@ public:
     void removeOperatorByFd(int fd);
 
     void broadcastMessage(std::string reply);
-    void broadcastMessage2(std::string reply, int fd);
+    void sendMessageToAllExcept(std::string reply, int fd);
 
     size_t getUserCount();
     bool isUserInChannel(std::string &name);
     bool isUserOperator(std::string &name);
-    void checkChannelName(std::string channelName);
-    void addOperatorOnChannel(User user);
-    void addUser(User user);
-    bool promoteUserToOperator(std::string &name);
-    void promoteFirstUserToOperator();
+    void validateName(std::string channelName);
+    void addOperator(User user);
+    void addRegularUser(User user);
+    bool promoteToOperator(std::string &name);
+    void promoteFirstUser();
     bool demoteOperatorToUser(std::string &name);
     void notifyUsers(std::string msg, User &author);
     bool hasOperators();
-
 };
-
-#endif

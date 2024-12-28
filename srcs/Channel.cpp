@@ -1,400 +1,352 @@
 #include "../includes/channel.hpp"
 
 Channel::Channel()
+    : channelName(""),
+      topicName(""),
+      creationTime(""),
+      topic(0),
+      key(0),
+      limit(0),
+      invitOnly(0),
+      restrictTopic(false)
 {
-    channelName = "";
-    topicName = "";
-    created_at = "";
-    topic = 0;
-    key = 0;
-    limit = 0;
-    invitOnly = 0;
-    topicRestriction = false;
-    
-    char mode[5] = {'i', 't', 'k', 'o', 'l'};
-    for (int i = 0; i < 5; i++)
-        channelMode.push_back(std::make_pair(mode[i], false));
-}
-
-Channel::Channel(Channel const &src)
-{
-    *this = src;
-}
-
-Channel::~Channel()
-{
-}
-
-Channel &Channel::operator=(Channel const &rhs)
-{
-    if (this != &rhs)
+    char modes[] = {'i', 't', 'k', 'o', 'l'};
+    for (size_t i = 0; i < sizeof(modes) / sizeof(modes[0]); ++i)
     {
-        channelName = rhs.channelName;
-        topicName = rhs.topicName;
-        password = rhs.password;
-        topic = rhs.topic;
-        key = rhs.key;
-        limit = rhs.limit;
-        sock_user = rhs.sock_user;
-        admin = rhs.admin;
-        invitOnly = rhs.invitOnly;
-        topicRestriction = rhs.topicRestriction;
-        created_at = rhs.created_at;
-        channelMode = rhs.channelMode;
+        channelMode.push_back(std::pair<char, bool>(modes[i], false));
     }
-    return (*this);
 }
 
-std::string Channel::getChannelName()
+
+Channel::Channel(Channel const &src) { *this = src; }
+
+Channel::~Channel(){}
+
+Channel &Channel::operator=(const Channel &rhs)
 {
-    return (channelName);
+    if (this == &rhs)
+        return *this;
+
+    // Assign string members
+    channelName = rhs.channelName;
+    topicName = rhs.topicName;
+    password = rhs.password;
+    creationTime = rhs.creationTime;
+
+    // Assign integral and boolean members
+    topic = rhs.topic;
+    key = rhs.key;
+    limit = rhs.limit;
+    invitOnly = rhs.invitOnly;
+    restrictTopic = rhs.restrictTopic;
+
+    // Assign container members
+    regularUsers = rhs.regularUsers;
+    admin = rhs.admin;
+    channelMode = rhs.channelMode;
+
+    return *this;
 }
 
-std::string Channel::getTopicName()
-{
-    return (topicName);
-}
+std::string Channel::getChannelName() { return (channelName); }
 
-std::string Channel::getChannelPassword()
-{
-    return (password);
-}
+std::string Channel::getTopicName() { return (topicName); }
+
+std::string Channel::getChannelPassword() { return (this->password); }
 
 std::string Channel::getUserList()
 {
     std::string list;
+    bool first = true; // Flag to track if it's the first nickname being added
 
+    // Helper function to append nicknames
     for (size_t i = 0; i < admin.size(); i++)
     {
+        if (!first) // Add a space before subsequent nicknames
+            list += " ";
         list += "@" + admin[i].getNickname();
-        if ((i + 1) < admin.size())
-            list += " ";
+        first = false;
     }
-    if (sock_user.size())
-        list += " ";
-    for (size_t i = 0; i < sock_user.size(); i++)
+
+    for (size_t i = 0; i < regularUsers.size(); i++)
     {
-        list += sock_user[i].getNickname();
-        if ((i + 1) < sock_user.size())
+        if (!first) // Add a space before subsequent nicknames
             list += " ";
+        list += regularUsers[i].getNickname();
+        first = false;
     }
 
-    return (list);
+    return list;
 }
 
-std::string Channel::getCreationDate()
-{
-    return (created_at);
-}
+std::string Channel::getCreationDate() { return (this->creationTime); }
 
 std::string Channel::getChannelModes()
 {
     std::string mode;
+    bool hasModes = false;
 
-    for (size_t i = 0; i < channelMode.size(); i++)
-    {
-        if (channelMode[i].first != 'o' && channelMode[i].second)
+    for (size_t i = 0; i < channelMode.size(); i++) {
+        if (channelMode[i].first != 'o' && channelMode[i].second) {
             mode.push_back(channelMode[i].first);
+            hasModes = true;
+        }
     }
-    if (!mode.empty())
+
+    // Prepend '+' if any mode was added
+    if (hasModes)
         mode.insert(mode.begin(), '+');
 
-    return (mode);
+    return mode;
 }
 
-std::vector<User> &Channel::getUsers()
-{
-    return (sock_user);
-}
+std::vector<User> &Channel::getUsers() { return (regularUsers); }
 
-std::vector<User> &Channel::getOperators()
-{
-    return (admin);
-}
+std::vector<User> &Channel::getOperators() { return (admin); }
 
 User *Channel::getUserByFd(int fd)
 {
-    for (std::vector<User>::iterator it = sock_user.begin(); it != sock_user.end(); ++it)
+    for (size_t i = 0; i < regularUsers.size(); ++i)
     {
-        if (it->getFduser() == fd)
-            return &(*it);
+        if (regularUsers[i].getFduser() == fd)
+            return &regularUsers[i];
     }
-    return (NULL);
+    return NULL;
 }
 
-User *Channel::getOperatorByFd(int fd)
-{
-    for (std::vector<User>::iterator it = admin.begin(); it != admin.end(); ++it)
-    {
-        if (it->getFduser() == fd)
-            return &(*it);
+User *Channel::getOperatorByFd(int fd) {
+    for (size_t i = 0; i < admin.size(); ++i) {
+        if (admin[i].getFduser() == fd)
+            return &admin[i];
     }
-    return (NULL);
+    return NULL;
 }
 
-User *Channel::getFindUserByName(std::string name)
-{
-    for (std::vector<User>::iterator it = sock_user.begin(); it != sock_user.end(); ++it)
-    {
-        if (it->getNickname() == name)
-            return &(*it);
+User *Channel::getFindUserByName(std::string name) {
+    for (size_t i = 0; i < regularUsers.size(); ++i) {
+        if (regularUsers[i].getNickname() == name)
+            return &regularUsers[i];
     }
-    for (std::vector<User>::iterator it = admin.begin(); it != admin.end(); ++it)
-    {
-        if (it->getNickname() == name)
-            return &(*it);
+    for (size_t i = 0; i < admin.size(); ++i) {
+        if (admin[i].getNickname() == name)
+            return &admin[i];
     }
-    return (NULL);
+    return NULL;
 }
 
-int Channel::getInviteOnlyStatus()
-{
-    return invitOnly;
+int Channel::isInviteOnly() {
+    return this->invitOnly;
 }
 
-int Channel::getTopicStatus()
-{
-    return topic;
+int Channel::isTopicSet() {
+    return this->topic;
 }
 
-int Channel::getKeyStatus()
-{
-    return key;
+int Channel::hasPassword() {
+    return this->key;
 }
 
-int Channel::getUserLimit()
-{
-    return limit;
+int Channel::getUserLimit() {
+    return this->limit;
 }
 
-bool Channel::getTopicRestriction() const
-{
-    return (topicRestriction);
+bool Channel::isTopicRestricted() const {
+    return (this->restrictTopic);
 }
 
-bool Channel::getChannelModeOption(size_t i)
-{
+bool Channel::isModeEnabled(size_t i) {
     return (channelMode[i].second);
 }
 
 std::vector<User *> Channel::getUserPointers()
 {
     std::vector<User *> pointers;
-    for (size_t i = 0; i < sock_user.size(); i++)
-    {
-        pointers.push_back(&sock_user[i]);
+    pointers.reserve(regularUsers.size()); // Reserve memory for better performance
+
+    for (size_t i = 0; i < regularUsers.size(); ++i) {
+        pointers.push_back(&regularUsers[i]);
     }
-    return (pointers);
+
+    return pointers;
 }
 
-void Channel::setChannelName(std::string name)
-{
-    channelName = name;
+void Channel::setChannelName(std::string name) {
+    this->channelName = name;
 }
 
-void Channel::setTopicName(std::string topic)
-{
-    topicName = topic;
+void Channel::setTopic(std::string topic) {
+    this->topicName = topic;
 }
 
-void Channel::setChannelPassword(std::string password)
-{
+void Channel::setPassword(std::string password) {
     this->password = password;
 }
 
-void Channel::setInviteOnlyStatus(int invitOnly)
-{
+void Channel::setInviteOnly(int invitOnly) {
     this->invitOnly = invitOnly;
 }
 
-void Channel::setTopicRestriction(bool restriction)
-{
-    this->topicRestriction = restriction;
+void Channel::setTopicRestriction(bool restriction) {
+    this->restrictTopic = restriction;
 }
 
-void Channel::setTopicStatus(int topic)
-{
+void Channel::setTopicFlag(int topic) {
     this->topic = topic;
 }
 
-void Channel::setKeyStatus(int key)
-{
+void Channel::setKeyStatus(int key) {
     this->key = key;
 }
 
-void Channel::setUserLimit(int limit)
-{
+void Channel::setUserLimit(int limit) {
     this->limit = limit;
 }
 
-void Channel::setChannelMode(size_t i, bool mode)
-{
+void Channel::setChannelMode(size_t i, bool mode) {
     channelMode[i].second = mode;
 }
 
-void Channel::setCreationDate()
-{
-    std::time_t _time = std::time(NULL);
+void Channel::setCreationDate() {
+    std::time_t currentTime = std::time(NULL);
     std::ostringstream oss;
-    oss << _time;
-    created_at = std::string(oss.str());
+    oss << currentTime;
+    creationTime = oss.str(); // Direct assignment without redundant std::string creation
 }
 
-void Channel::removeUserByFd(int fd)
-{
-    for (std::vector<User>::iterator it = sock_user.begin(); it != sock_user.end(); ++it)
-    {
-        if (it->getFduser() == fd)
-        {
-            sock_user.erase(it);
+void Channel::removeUserByFd(int fd) {
+    for (size_t i = 0; i < regularUsers.size(); ++i) {
+        if (regularUsers[i].getFduser() == fd) {
+            regularUsers.erase(regularUsers.begin() + i);
             break;
         }
     }
 }
 
-void Channel::removeOperatorByFd(int fd)
-{
-    for (std::vector<User>::iterator it = admin.begin(); it != admin.end(); ++it)
-    {
-        if (it->getFduser() == fd)
-        {
-            admin.erase(it);
+void Channel::removeOperatorByFd(int fd) {
+    for (size_t i = 0; i < admin.size(); ++i) {
+        if (admin[i].getFduser() == fd) {
+            admin.erase(admin.begin() + i);
             break;
         }
     }
 }
 
-void Channel::addUser(User user)
-{
-    sock_user.push_back(user);
+
+void Channel::addRegularUser(User user) {
+    regularUsers.push_back(user);
 }
 
-void Channel::addOperatorOnChannel(User user)
-{
+void Channel::addOperator(User user) {
     admin.push_back(user);
 }
 
-void Channel::checkChannelName(std::string channelName)
-{
+void Channel::validateName(std::string channelName) {
     if (channelName.empty() || channelName.size() < 2)
-        throw std::runtime_error("Incorrect channel name");
+        throw std::runtime_error("Channel name must be at least 2 characters long.");
+    
     if (channelName[0] != '&')
-        throw std::runtime_error("Incorrect channel name, it must begin with &");
-    for (size_t i = 0; i < channelName.size(); ++i)
-    {
-        if (channelName[i] == ' ' || channelName[i] == 0x07 || channelName[i] == ',')
-            throw std::runtime_error("Incorrect channel name");
+        throw std::runtime_error("Channel name must begin with '&'.");
+    
+    for (std::string::size_type i = 0; i < channelName.size(); ++i) {
+        char c = channelName[i];
+        if (c == ' ' || c == '\a' || c == ',')
+            throw std::runtime_error("Channel name contains invalid characters.");
     }
 }
 
-size_t Channel::getUserCount()
-{
-    size_t num = sock_user.size() + admin.size();
-    return (num);
+size_t Channel::getUserCount() {
+    return regularUsers.size() + admin.size();
 }
 
-bool Channel::isUserInChannel(std::string &name)
-{
-    for (size_t i = 0; i < sock_user.size(); i++)
-    {
-        if (sock_user[i].getNickname() == name)
+bool Channel::isUserInChannel(std::string &name) {
+    for (size_t i = 0; i < regularUsers.size(); ++i) {
+        if (regularUsers[i].getNickname() == name)
             return true;
     }
-    for (size_t i = 0; i < admin.size(); i++)
-    {
+
+    for (size_t i = 0; i < admin.size(); ++i) {
         if (admin[i].getNickname() == name)
             return true;
     }
+
     return false;
 }
 
 bool Channel::isUserOperator(std::string &name)
 {
-    for (std::vector<User>::iterator it = admin.begin(); it != admin.end(); ++it)
-    {
-        if (it->getNickname() == name)
-            return (true);
-    }
-    return (false);
-}
-
-bool Channel::hasOperators()
-{
-    if (admin.empty())
-        return (false);
-    return (true);
-}
-
-void Channel::broadcastMessage(std::string reply)
-{
-    for (size_t i = 0; i < admin.size(); i++)
-    {
-        if (send(admin[i].getFduser(), reply.c_str(), reply.size(), 0) == -1)
-            std::cerr << "send() failed" << std::endl;
-    }
-    for (size_t i = 0; i < sock_user.size(); i++)
-    {
-        if (send(sock_user[i].getFduser(), reply.c_str(), reply.size(), 0) == -1)
-            std::cerr << "send() failed" << std::endl;
-    }
-}
-
-void Channel::broadcastMessage2(std::string reply, int fd)
-{
-    for (size_t i = 0; i < admin.size(); i++)
-    {
-        if (admin[i].getFduser() != fd)
-        {
-            if (send(admin[i].getFduser(), reply.c_str(), reply.size(), 0) == -1)
-                std::cerr << "send() failed" << std::endl;
-        }
-    }
-    for (size_t i = 0; i < sock_user.size(); i++)
-    {
-        if (sock_user[i].getFduser() != fd)
-        {
-            if (send(sock_user[i].getFduser(), reply.c_str(), reply.size(), 0) == -1)
-                std::cerr << "send() failed" << std::endl;
-        }
-    }
-}
-
-void Channel::promoteFirstUserToOperator()
-{
-    admin.push_back(sock_user[0]);
-    sock_user.erase(sock_user.begin());
-}
-
-bool Channel::promoteUserToOperator(std::string& name)
-{
-    size_t i = 0;
-    for (; i < sock_user.size(); i++)
-    {
-        if (sock_user[i].getNickname() == name)
-            break;
-    }
-    if (i < sock_user.size())
-    {
-        admin.push_back(sock_user[i]);
-        sock_user.erase(i + sock_user.begin());
-        return true;
+    for (size_t i = 0; i < admin.size(); ++i) {
+        if (admin[i].getNickname() == name)
+            return true;
     }
     return false;
 }
 
-bool Channel::demoteOperatorToUser(std::string& name)
+bool Channel::hasOperators() {
+    return !admin.empty();
+}
+
+void Channel::broadcastMessage(std::string reply)
 {
-    size_t i = 0;
-    for (; i < admin.size(); i++)
-    {
-        if (admin[i].getNickname() == name)
-            break;
+    // Helper function to send a message to a group of users
+    for (size_t i = 0; i < admin.size(); ++i) {
+        if (send(admin[i].getFduser(), reply.c_str(), reply.size(), 0) == -1) {
+            std::cerr << "send() failed for admin: " << admin[i].getFduser() << std::endl;
+        }
     }
-    if (i < admin.size())
-    {
-        sock_user.push_back(admin[i]);
-        admin.erase(i + admin.begin());
-        return true;
+
+    for (size_t i = 0; i < regularUsers.size(); ++i) {
+        if (send(regularUsers[i].getFduser(), reply.c_str(), reply.size(), 0) == -1) {
+            std::cerr << "send() failed for user: " << regularUsers[i].getFduser() << std::endl;
+        }
+    }
+}
+
+void Channel::sendMessageToAllExcept(std::string reply, int fd)
+{
+    // Helper function to send a message to all users except one
+    for (size_t i = 0; i < admin.size(); ++i) {
+        if (admin[i].getFduser() != fd)
+        {
+            if (send(admin[i].getFduser(), reply.c_str(), reply.size(), 0) == -1) {
+                std::cerr << "send() failed for admin: " << admin[i].getFduser() << std::endl;
+            }
+        }
+    }
+
+    for (size_t i = 0; i < regularUsers.size(); ++i) {
+        if (regularUsers[i].getFduser() != fd) {
+            if (send(regularUsers[i].getFduser(), reply.c_str(), reply.size(), 0) == -1) {
+                std::cerr << "send() failed for user: " << regularUsers[i].getFduser() << std::endl;
+            }
+        }
+    }
+}
+
+void Channel::promoteFirstUser() {
+    if (!regularUsers.empty()) { // Check if there are users in regularUsers
+        admin.push_back(regularUsers[0]);
+        regularUsers.erase(regularUsers.begin());
+    }
+}
+
+bool Channel::promoteToOperator(std::string &name) {
+    for (size_t i = 0; i < regularUsers.size(); ++i) {
+        if (regularUsers[i].getNickname() == name) {
+            admin.push_back(regularUsers[i]);
+            regularUsers.erase(regularUsers.begin() + i); // Adjusted to avoid unnecessary addition
+            return true;
+        }
+    }
+    return false;
+}
+
+bool Channel::demoteOperatorToUser(std::string &name) {
+    for (size_t i = 0; i < admin.size(); ++i) {
+        if (admin[i].getNickname() == name) {
+            regularUsers.push_back(admin[i]);
+            admin.erase(admin.begin() + i); // Simplified erase operation
+            return true;
+        }
     }
     return false;
 }

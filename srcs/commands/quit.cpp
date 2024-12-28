@@ -5,7 +5,7 @@ void Server::QUIT(std::string message, int fd)
     std::string reason;
     std::string reply;
 
-    reason = quitReason(message);
+    reason = extractQuitReason(message);
     for (size_t i = 0; i < channel.size(); i++)
     {
         if (channel[i].getUserByFd(fd))
@@ -28,7 +28,7 @@ void Server::QUIT(std::string message, int fd)
             {
                 if (!channel[i].hasOperators())
                 {
-                    channel[i].promoteFirstUserToOperator();
+                    channel[i].promoteFirstUser();
                 }
                 reply = ":" + getClientByFd(fd)->getNickname() + "!~" + getClientByFd(fd)->getUser() + "@localhost QUIT " + reason + "\r\n";
                 channel[i].broadcastMessage(reply);
@@ -39,18 +39,18 @@ void Server::QUIT(std::string message, int fd)
     std::cout << "FD[" << fd << "] disconnected" << std::endl;
     clearChannel(fd);
     removeClient(fd);
-    removeFd(fd);
+    removePollFd(fd);
     close(fd);
 }
 
-std::string Server::quitReason(std::string message)
+std::string Server::extractQuitReason(std::string message)
 {
     std::istringstream stm(message);
     std::string reason;
     std::string str;
 
     stm >> str;
-    quitReason2(message, str, reason);
+    appendQuitReason(message, str, reason);
     if (reason.empty())
         return (std::string("Quit"));
     if (reason[0] != ':')
@@ -68,7 +68,7 @@ std::string Server::quitReason(std::string message)
     return reason;
 }
 
-void Server::quitReason2(std::string message, std::string str, std::string &reason)
+void Server::appendQuitReason(std::string message, std::string str, std::string &reason)
 {
     size_t i = 0;
 

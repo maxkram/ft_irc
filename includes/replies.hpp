@@ -1,5 +1,4 @@
-#ifndef REPLIES_HPP
-#define REPLIES_HPP
+#pragma once
 
 #define ERR_NOTENOUGHPARAMETERS(client) (": 461 " + client + " :Not enough parameters\r\n")
 #define ERR_PASSWORDINCORECT(client) (": 464 " + client + " :Password incorrect\r\n")
@@ -39,5 +38,3 @@
 #define RPL_INVITE(client, nickname, channel) (": 341 " + client + " invite " + nickname + " to #" + channel + "\r\n")
 #define RPL_PRIVMSGCHANNEL(hostname, ipaddress, receiver, message) (":" + hostname + "@" + ipaddress + " PRIVMSG " + "#" + receiver + " " + message + "\r\n")
 #define RPL_PRIVMSGUSER(hostname, ipaddress, receiver, message) (":" + hostname + "@" + ipaddress + " PRIVMSG " + receiver + " " + message + "\r\n")
-
-#endif

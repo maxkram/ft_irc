@@ -85,7 +85,7 @@ void Server::PRIVMSG(std::string &message, int fd)
         Channel *channel = getChannel(&split_params[0][1]);
         if (!channel->isUserInChannel(getClientByFd(fd)->getNickname()))
         {
-            notifyClient2(442, getClientByFd(fd)->getNickname(),  channel->getChannelName(), getClientByFd(fd)->getFduser(), " :You're not on that channel\r\n");
+            sendErrorToClient(442, getClientByFd(fd)->getNickname(),  channel->getChannelName(), getClientByFd(fd)->getFduser(), " :You're not on that channel\r\n");
             return;
         }
         std::vector<User> ch_usrs = getChannel(&split_params[0][1])->getUsers();

@@ -22,12 +22,12 @@ void Server::TOPIC(std::string message, int fd)
 	channame = param[1].substr(1);
 	if (!getChannel(channame))
 	{
-		notifyClient3(403, "#" + channame, fd, " :No such channel\r\n");
+		sendError(403, "#" + channame, fd, " :No such channel\r\n");
 		return;
 	}
 	if (!(getChannel(channame)->getUserByFd(fd)) && !(getChannel(channame)->getOperatorByFd(fd)))
 	{
-		notifyClient3(442, "#" + channame, fd, " :You're not on that channel\r\n");
+		sendError(442, "#" + channame, fd, " :You're not on that channel\r\n");
 		return;
 	}
 	Channel ch = Channel();
@@ -37,7 +37,7 @@ void Server::TOPIC(std::string message, int fd)
 		if (channel[i].getChannelName() == &(split_params[0][1]))
 			ch = channel[i];
 	}
-	if (ch.getTopicRestriction() && !ch.isUserOperator(user->getNickname()))
+	if (ch.isTopicRestricted() && !ch.isUserOperator(user->getNickname()))
 	{
 		notifyUsers(ERR_NOTOPERATOR(user->getNickname(), channame), fd);
 		return;
@@ -55,7 +55,7 @@ void Server::TOPIC(std::string message, int fd)
 	}
 	else if (ch.getUserByFd(fd) != NULL || ch.getOperatorByFd(fd) != NULL)
 	{
-		ch.setTopicName(split_params[1].substr(1));
+		ch.setTopic(split_params[1].substr(1));
 		ch.broadcastMessage(RPL_TOPIC(getClientByFd(fd)->getNickname(), ch.getChannelName(), ch.getTopicName()));
 		ch.broadcastMessage(RPL_TOPICWHOTIME(getClientByFd(fd)->getNickname(), ch.getChannelName(), getClientByFd(fd)->getNickname(), ch.getCreationDate()));
 		return;

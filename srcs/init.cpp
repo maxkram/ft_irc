@@ -14,42 +14,42 @@ void Server::initServer(int port, std::string pass)
     addr.sin_addr.s_addr = INADDR_ANY;
     addr.sin_port = htons(port);
 
-    sock_fd = socket(AF_INET, SOCK_STREAM, 0);
-    if (sock_fd < 0)
+    serverSocketFd = socket(AF_INET, SOCK_STREAM, 0);
+    if (serverSocketFd < 0)
     {
         std::cerr << "Error: socket creation failed." << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    if (setsockopt(sock_fd, SOL_SOCKET, SO_REUSEADDR, (char *)&sock_opt, sizeof(sock_opt)) < 0)
+    if (setsockopt(serverSocketFd, SOL_SOCKET, SO_REUSEADDR, (char *)&socketOptions, sizeof(socketOptions)) < 0)
     {
         std::cerr << "Error: setting socket options failed." << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    if (fcntl(sock_fd, F_SETFL, O_NONBLOCK) < 0)
+    if (fcntl(serverSocketFd, F_SETFL, O_NONBLOCK) < 0)
     {
         std::cerr << "Error: setting socket to non-blocking failed." << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    if (bind(sock_fd, (const struct sockaddr*)&addr, sizeof(addr)) < 0)
+    if (bind(serverSocketFd, (const struct sockaddr*)&addr, sizeof(addr)) < 0)
     {
         std::cerr << "Error: binding socket failed." << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    if (listen(sock_fd, 3) < 0)
+    if (listen(serverSocketFd, 3) < 0)
     {
         std::cerr << "Error: listening on socket failed." << std::endl;
         exit(EXIT_FAILURE);
     }
 
-    std::cout << "Connect socket: FD[" << sock_fd << "]" << std::endl;
+    std::cout << "Connect socket: FD[" << serverSocketFd << "]" << std::endl;
 
-    new_user.fd = sock_fd;
-    new_user.events = POLLIN;
-    poll_fd.push_back(new_user);
+    newUserPollFd.fd = serverSocketFd;
+    newUserPollFd.events = POLLIN;
+    pollFds.push_back(newUserPollFd);
 }
 
 void Server::checkPollEvents()
@@ -58,18 +58,18 @@ void Server::checkPollEvents()
 
     while (Server::signal == false)
     {
-        status = poll(&poll_fd[0], poll_fd.size(), 5000);
+        status = poll(&pollFds[0], pollFds.size(), 5000);
         if (status < 0 && Server::signal == false)
             throw(std::runtime_error("poll() failed"));
 
-        for (size_t i = 0; i < poll_fd.size(); i++)
+        for (size_t i = 0; i < pollFds.size(); i++)
         {
-            if (poll_fd[i].revents & POLLIN)
+            if (pollFds[i].revents & POLLIN)
             {
-                if (poll_fd[i].fd == sock_fd)
+                if (pollFds[i].fd == serverSocketFd)
                     Server::acceptNewClient();
                 else
-                    Server::handleData(poll_fd[i].fd);
+                    Server::handleData(pollFds[i].fd);
             }
         }
     }
@@ -84,7 +84,7 @@ void Server::acceptNewClient()
     struct sockaddr_in client_addr;
     socklen_t socklen = sizeof(client_addr);
 
-    cli_sock = accept(sock_fd, (sockaddr *)&client_addr, &socklen);
+    cli_sock = accept(serverSocketFd, (sockaddr *)&client_addr, &socklen);
     if (cli_sock == -1)
     {
         std::cerr << "Error: Server::acceptNewClient(): accept() failed." << std::endl;
@@ -97,16 +97,16 @@ void Server::acceptNewClient()
         exit(EXIT_FAILURE);
     }
 
-    new_user.fd = cli_sock;
-    new_user.events = POLLIN | POLLOUT;
-    new_user.revents = 0;
+    newUserPollFd.fd = cli_sock;
+    newUserPollFd.events = POLLIN | POLLOUT;
+    newUserPollFd.revents = 0;
 
     client.setFduser(cli_sock);
     client.setIp(inet_ntoa(client_addr.sin_addr));
 
-    sock_user.push_back(client);
+    connectedUsers.push_back(client);
 
-    poll_fd.push_back(new_user);
+    pollFds.push_back(newUserPollFd);
 
     std::cout << "FD[" << cli_sock << "] connected" << std::endl;
 }
@@ -127,7 +127,7 @@ void Server::handleData(int fd)
         std::cout << "FD[" << fd << "] disconnected" << std::endl;
         clearChannel(fd);
         removeClient(fd);
-        removeFd(fd);
+        removePollFd(fd);
         close(fd);
     }
     else
@@ -141,7 +141,7 @@ void Server::handleData(int fd)
         for (size_t i = 0; i < command.size(); i++)
         {
             std::cout << RED << LARROW << RESET << command[i] << std::endl;
-            this->processCommand(command[i], fd);
+            this->executeCommand(command[i], fd);
         }
 
         if (getClientByFd(fd))

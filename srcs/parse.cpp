@@ -80,7 +80,7 @@ int Server::splitMessage(std::string message, std::string split_mess[3])
     return (0);
 }
 
-std::vector<std::string> Server::dissectMessage(std::string &message)
+std::vector<std::string> Server::parseMessage(std::string &message)
 {
     std::vector<std::string> commandParams;
     std::string split_mess[3] = {std::string(), std::string(), std::string()};
@@ -128,7 +128,7 @@ std::vector<std::string> Server::splitBuffer(std::string buff)
     return commandParams;
 }
 
-void Server::processCommand(std::string &message, int fd)
+void Server::executeCommand(std::string &message, int fd)
 {
     std::vector<std::string> commandParams;
     std::vector<std::string> commandParts;
@@ -136,7 +136,7 @@ void Server::processCommand(std::string &message, int fd)
     if (message.empty())
         return;
 
-    commandParts = dissectMessage(message);
+    commandParts = parseMessage(message);
 
     commandParams = extractParams(message);
 

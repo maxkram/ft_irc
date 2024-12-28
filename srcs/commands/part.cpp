@@ -8,7 +8,7 @@ void Server::PART(std::string message, int fd)
 
     if (!splitPartParams(message, param, reason, fd))
     {
-        notifyClient3(461, getClientByFd(fd)->getNickname(), getClientByFd(fd)->getFduser(), " :Not enough parameters\r\n");
+        sendError(461, getClientByFd(fd)->getNickname(), getClientByFd(fd)->getFduser(), " :Not enough parameters\r\n");
         return;
     }
     for (size_t i = 0; i < param.size(); i++)
@@ -21,7 +21,7 @@ void Server::PART(std::string message, int fd)
                 flag = true;
                 if (!channel[j].getUserByFd(fd) && !channel[j].getOperatorByFd(fd))
                 {
-                    notifyClient2(442, getClientByFd(fd)->getNickname(), "#" + param[i], getClientByFd(fd)->getFduser(), " :You're not on that channel\r\n");
+                    sendErrorToClient(442, getClientByFd(fd)->getNickname(), "#" + param[i], getClientByFd(fd)->getFduser(), " :You're not on that channel\r\n");
                     continue;
                 }
                 if (channel[j].getFindUserByName(getClientByFd(fd)->getNickname())->isChannelFounder())
@@ -43,13 +43,13 @@ void Server::PART(std::string message, int fd)
                 {
                     if (!channel[j].hasOperators())
                     {
-                        channel[j].promoteFirstUserToOperator();
+                        channel[j].promoteFirstUser();
                     }
                 }
             }
         }
         if (!flag)
-            notifyClient2(403, getClientByFd(fd)->getNickname(), "#" + param[i], getClientByFd(fd)->getFduser(), " :No such channel\r\n");
+            sendErrorToClient(403, getClientByFd(fd)->getNickname(), "#" + param[i], getClientByFd(fd)->getFduser(), " :No such channel\r\n");
     }
 }
 
@@ -102,7 +102,7 @@ int Server::splitPartParams(std::string message, std::vector<std::string> &param
             param[i].erase(param[i].begin());
         else
         {
-            notifyClient2(403, getClientByFd(fd)->getNickname(), param[i], getClientByFd(fd)->getFduser(), " :No such channel\r\n");
+            sendErrorToClient(403, getClientByFd(fd)->getNickname(), param[i], getClientByFd(fd)->getFduser(), " :No such channel\r\n");
             param.erase(param.begin() + i--);
         }
     }

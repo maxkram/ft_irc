@@ -1,39 +1,31 @@
 #include "../../includes/server.hpp"
 
-void Server::PASS(std::string message, int fd) {
-    User *user = getClientByFd(fd);
-    if (!user) {
-        return;
-    }
+void Server::PASS(std::string message, int fd)
+{
+    User *user;
+    std::string pass;
 
-    // Skip leading whitespace and extract the password
+    user = getClientByFd(fd);
     std::string::iterator it = message.begin();
-    while (it != message.end() && (*it == ' ' || *it == '\t' || *it == '\v')) {
+    while (it != message.end() && (*it == ' ' || *it == '\t' || *it == '\v'))
         ++it;
-    }
-    if (it != message.end() && *it == ':') {
+    if (it != message.end() && *it == ':')
         ++it;
-    }
-
-    // Extract the password part from the message
     message = std::string(it + 5, message.end());
-
-    // Handle empty password case
-    if (message.empty()) {
+    if (message.empty())
+    {
         notifyUsers(ERR_NOTENOUGHPARAMETERS(std::string("*")), fd);
-        return;
     }
-
-    // Handle unregistered user
-    if (!user->isRegistered()) {
-        if (message == password) {
+    else if (!user->isRegistered())
+    {
+        pass = message;
+        if (pass == password)
             user->setRegistered(true);
-        } else {
+        else
             notifyUsers(ERR_PASSWORDINCORECT(std::string("*")), fd);
-        }
-        return;
     }
-
-    // Handle already registered user
-    notifyUsers(ERR_ALREADYREGISTERED(user->getNickname()), fd);
+    else
+    {
+        notifyUsers(ERR_ALREADYREGISTERED(getClientByFd(fd)->getNickname()), fd);
+    }
 }

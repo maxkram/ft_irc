@@ -1,5 +1,4 @@
-#ifndef USER_HPP
-#define USER_HPP
+#pragma once
 
 #include "server.hpp"
 #include "channel.hpp"
@@ -63,5 +62,3 @@ public:
     void addInvitation(std::string &channel);
     void removeInvitation(std::string &channel);
 };
-
-#endif
