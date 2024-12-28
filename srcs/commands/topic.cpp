@@ -2,34 +2,47 @@
 
 void Server::TOPIC(std::string message, int fd)
 {
-	std::vector<std::string> param;
+	std::vector<std::string> param = extractParams(message);
 	User *user = getClientByFd(fd);
-	std::string channame;
+	
+	if (!user)
+    {
+        std::cerr << "Error: User not found for fd " << fd << std::endl;
+        return;
+    }
 
-	param = extractParams(message);
 	std::string split_message[3] = {std::string(), std::string(), std::string()};
+	
 	if (splitMessage(message, split_message))
 		return;
 	
 	std::string split_params[3] = {std::string(), std::string(), std::string()};
+	
 	if (splitParams(split_message[2], split_params) == 1)
 		return;
+	
 	if (param.size() < 2)
 	{
-		notifyUsers(ERR_NOTENOUGHPARAMETERS(getClientByFd(fd)->getUser()), fd);
+		notifyUsers(ERR_NOTENOUGHPARAMETERS(user->getUser()), fd);
 		return;
 	}
-	channame = param[1].substr(1);
-	if (!getChannel(channame))
+	
+	std::string channame = param[1].substr(1);
+	
+	Channel *channelPtr = getChannel(channame);
+
+	if (!channelPtr)
 	{
 		sendError(403, "#" + channame, fd, " :No such channel\r\n");
 		return;
 	}
-	if (!(getChannel(channame)->getUserByFd(fd)) && !(getChannel(channame)->getOperatorByFd(fd)))
+	
+	if (!channelPtr->getUserByFd(fd) && !channelPtr->getOperatorByFd(fd))
 	{
 		sendError(442, "#" + channame, fd, " :You're not on that channel\r\n");
 		return;
 	}
+	
 	Channel ch = Channel();
 
 	for (size_t i = 0; i < channel.size(); i++)
@@ -37,27 +50,33 @@ void Server::TOPIC(std::string message, int fd)
 		if (channel[i].getChannelName() == &(split_params[0][1]))
 			ch = channel[i];
 	}
-	if (ch.isTopicRestricted() && !ch.isUserOperator(user->getNickname()))
-	{
-		notifyUsers(ERR_NOTOPERATOR(user->getNickname(), channame), fd);
-		return;
-	}
-	if (!split_params[0].empty() && split_params[1].empty())
-	{
-		if (ch.getTopicName().empty() == 1)
-			notifyUsers(RPL_NOTOPICSET(ch.getChannelName()), fd);
-		else
-		{
-			ch.broadcastMessage(RPL_TOPIC(getClientByFd(fd)->getNickname(), ch.getChannelName(), ch.getTopicName()));
-			ch.broadcastMessage(RPL_TOPICWHOTIME(getClientByFd(fd)->getNickname(), ch.getChannelName(), getClientByFd(fd)->getNickname(), ch.getCreationDate()));
-		}
-		return;
-	}
-	else if (ch.getUserByFd(fd) != NULL || ch.getOperatorByFd(fd) != NULL)
-	{
-		ch.setTopic(split_params[1].substr(1));
-		ch.broadcastMessage(RPL_TOPIC(getClientByFd(fd)->getNickname(), ch.getChannelName(), ch.getTopicName()));
-		ch.broadcastMessage(RPL_TOPICWHOTIME(getClientByFd(fd)->getNickname(), ch.getChannelName(), getClientByFd(fd)->getNickname(), ch.getCreationDate()));
-		return;
-	}
+	
+	// Check topic restriction and user privileges
+    if (channelPtr->isTopicRestricted() && !channelPtr->isUserOperator(user->getNickname()))
+    {
+        notifyUsers(ERR_NOTOPERATOR(user->getNickname(), channame), fd);
+        return;
+    }
+	
+    // Handle topic retrieval or update
+    std::string topic;
+    if (param.size() == 2) // No topic provided, retrieve current topic
+    {
+        if (channelPtr->getTopicName().empty())
+        {
+            notifyUsers(RPL_NOTOPICSET(channelPtr->getChannelName()), fd);
+        }
+        else
+        {
+            channelPtr->broadcastMessage(RPL_TOPIC(user->getNickname(), channelPtr->getChannelName(), channelPtr->getTopicName()));
+            channelPtr->broadcastMessage(RPL_TOPICWHOTIME(user->getNickname(), channelPtr->getChannelName(), user->getNickname(), channelPtr->getCreationDate()));
+        }
+    }
+    else // Update the topic
+    {
+        topic = param[2].substr(1); // Remove leading ':' from the topic
+        channelPtr->setTopic(topic);
+        channelPtr->broadcastMessage(RPL_TOPIC(user->getNickname(), channelPtr->getChannelName(), channelPtr->getTopicName()));
+        channelPtr->broadcastMessage(RPL_TOPICWHOTIME(user->getNickname(), channelPtr->getChannelName(), user->getNickname(), channelPtr->getCreationDate()));
+    }
 }
