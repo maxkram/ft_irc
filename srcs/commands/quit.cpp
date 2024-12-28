@@ -45,26 +45,37 @@ void Server::QUIT(std::string message, int fd)
 
 std::string Server::extractQuitReason(std::string message)
 {
-    std::istringstream stm(message);
+    std::istringstream stream(message);
     std::string reason;
-    std::string str;
+    std::string firstWord;
 
-    stm >> str;
-    appendQuitReason(message, str, reason);
+    // Extract the first word from the message
+    stream >> firstWord;
+
+    // Append the remaining message as the reason
+    appendQuitReason(message, firstWord, reason);
+
+    // Default to "Quit" if no reason is provided
     if (reason.empty())
-        return (std::string("Quit"));
+    {
+        return "Quit";
+    }
+
+    // Ensure the reason starts with ':'
     if (reason[0] != ':')
     {
-        for (size_t i = 0; i < reason.size(); i++)
+        // Trim the reason at the first space
+        for (size_t i = 0; i < reason.size(); ++i)
         {
-            if (reason[i] == ' ') 
+            if (reason[i] == ' ')
             {
-                reason.erase(i, reason.size() - i);
+                reason.erase(i);
                 break;
             }
         }
-        reason.insert(reason.begin(), ':');
+        reason.insert(reason.begin(), ':'); // Prepend ':'
     }
+
     return reason;
 }
 
@@ -72,22 +83,35 @@ void Server::appendQuitReason(std::string message, std::string str, std::string 
 {
     size_t i = 0;
 
-    for (; i < message.size(); i++)
+    // Find the position of the first occurrence of `str` in the message
+    while (i < message.size())
     {
+        // Skip leading spaces
         if (message[i] != ' ')
         {
             std::string tmp;
-            for (; i < message.size() && message[i] != ' '; i++)
-                tmp += message[i];
+            // Collect the word
+            while (i < message.size() && message[i] != ' ')
+                tmp += message[i++];
+            
+            // Check if the word matches the target string
             if (tmp == str)
                 break;
-            else
-                tmp.clear();
+        }
+        else
+        {
+            ++i; // Move to the next character
         }
     }
+
+    // Extract the reason starting from the position after `str`
     if (i < message.size())
         reason = message.substr(i);
-    i = 0;
-    for (; i < reason.size() && reason[i] == ' '; i++);
-    reason = reason.substr(i);
+
+    // Remove leading spaces from the reason
+    size_t start = 0;
+    while (start < reason.size() && reason[start] == ' ')
+        ++start;
+
+    reason = reason.substr(start);
 }
