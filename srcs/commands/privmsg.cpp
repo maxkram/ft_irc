@@ -2,72 +2,72 @@
 
 std::string Server::getChannelTarget(std::string &target)
 {
-    Channel *ch = NULL;
-    std::string ch_name;
-
-    ch = getChannel(target);
-    if (ch != NULL && ch->getChannelName() == target)
-        return (ch->getChannelName());
-    return (std::string(""));
+    Channel *channel = getChannel(target);
+    if (channel != NULL)
+    {
+        const std::string &channelName = channel->getChannelName();
+        if (channelName == target)
+            return channelName;
+    }
+    return std::string("");
 }
 
 std::string Server::getUserTarget(int fd)
 {
-    User *us = NULL;
-
-    us = getClientByFd(fd);
+    User *us = getClientByFd(fd);
     return (us == NULL ? std::string("") : us->getNickname());
 }
 
 int Server::handlePrivmsg(std::string split_message[3], std::string split_params[3], int fd)
 {
-    switch (validatePrivmsgSyntax(split_message, split_params))
+    int validationResult = validatePrivmsgSyntax(split_message, split_params);
+    switch (validationResult)
     {
         case 0:
             break;
         case 1:
             notifyUsers(ERR_NORECIPIENT(split_message[0]), fd);
-            return (-1);
+            return -1;
         case 2:
             notifyUsers(ERR_NOTEXTTOSEND(), fd);
-            return (-1);
+            return -1;
         case 3:
             notifyUsers(ERR_NOTENOUGHPARAMETERS(getClientByFd(fd)->getNickname()), fd);
-            return (-1);
+            return -1;
         case 4:
             notifyUsers(ERR_NOTOPLEVEL(split_params[0]), fd);
-            return (-1);
+            return -1;
         case 5:
             notifyUsers(ERR_WILDCARDTOPLEVEL(split_params[0]), fd);
-            return (-1);
+            return -1;
         case 6:
             notifyUsers(ERR_TOOMANYRECIPIENTS(split_params[0]), fd);
-            return (-1);
+            return -1;
         default:
             break;
     }
 
-    std::string tmp("");
+    std::string tmp;
     if (split_params[0][0] == '&' || split_params[0][0] == '#')
     {
-        std::string tmp_ch_name(&split_params[0][1]);
-        tmp = getChannelTarget(tmp_ch_name);
-        if (tmp.empty() == 1 || getChannel(&split_params[0][1]) == NULL)
+        std::string channelName = split_params[0].substr(1);
+        tmp = getChannelTarget(channelName);
+        if (tmp.empty() || getChannel(channelName.c_str()) == NULL)
         {
             notifyUsers(ERR_NOSUCHNICK(split_params[0]), fd);
-            return (1);
+            return 1;
         }
     }
     else
     {
         tmp = getUserTarget(fd);
-        if (tmp.empty() == 1 || getClientByFd(fd) == NULL || getClientByNickname(split_params[0]) == NULL)
+        if (tmp.empty() || getClientByFd(fd) == NULL || getClientByNickname(split_params[0]) == NULL)
         {
             notifyUsers(ERR_NOSUCHNICK(tmp), fd);
-            return (1);
+            return 1;
         }
     }
-    return (0);
+    return 0;
 }
 
 void Server::PRIVMSG(std::string &message, int fd)
@@ -75,41 +75,73 @@ void Server::PRIVMSG(std::string &message, int fd)
     std::string split_message[3] = {std::string(), std::string(), std::string()};
     if (splitMessage(message, split_message))
         return;
+
     std::string split_params[3] = {std::string(), std::string(), std::string()};
     if (splitParams(split_message[2], split_params) == 1)
         return;
+
     if (handlePrivmsg(split_message, split_params, fd))
         return;
+
     if (split_params[0][0] == '&' || split_params[0][0] == '#')
     {
-        Channel *channel = getChannel(&split_params[0][1]);
-        if (!channel->isUserInChannel(getClientByFd(fd)->getNickname()))
+        std::string channelName = split_params[0].substr(1);
+        Channel *channel = getChannel(channelName.c_str());
+
+        if (!channel || !channel->isUserInChannel(getClientByFd(fd)->getNickname()))
         {
-            sendErrorToClient(442, getClientByFd(fd)->getNickname(),  channel->getChannelName(), getClientByFd(fd)->getFduser(), " :You're not on that channel\r\n");
+            sendErrorToClient(442, getClientByFd(fd)->getNickname(), channelName, getClientByFd(fd)->getFduser(), " :You're not on that channel\r\n");
             return;
         }
-        std::vector<User> ch_usrs = getChannel(&split_params[0][1])->getUsers();
-        for (size_t i = 0; i < ch_usrs.size(); i++)
+
+        std::vector<User> channelUsers = channel->getUsers();
+        for (size_t i = 0; i < channelUsers.size(); ++i)
         {
-            if (getClientByFd(fd)->getHostname() != ch_usrs[i].getHostname())
+            if (getClientByFd(fd)->getHostname() != channelUsers[i].getHostname())
             {
-                notifyUsers(RPL_PRIVMSGCHANNEL(getClientByFd(fd)->getHostname(), getClientByFd(fd)->getIp(), getChannel(&split_params[0][1])->getChannelName(), split_params[1]), ch_usrs[i].getFduser());
+                notifyUsers(
+                    RPL_PRIVMSGCHANNEL(
+                        getClientByFd(fd)->getHostname(),
+                        getClientByFd(fd)->getIp(),
+                        channel->getChannelName(),
+                        split_params[1]
+                    ),
+                    channelUsers[i].getFduser()
+                );
             }
         }
-        ch_usrs = getChannel(&split_params[0][1])->getOperators();
-        for (size_t i = 0; i < ch_usrs.size(); i++)
+
+        std::vector<User> channelOperators = channel->getOperators();
+        for (size_t i = 0; i < channelOperators.size(); ++i)
         {
-            if (getClientByFd(fd)->getHostname() != ch_usrs[i].getHostname())
+            if (getClientByFd(fd)->getHostname() != channelOperators[i].getHostname())
             {
-                notifyUsers(RPL_PRIVMSGCHANNEL(getClientByFd(fd)->getHostname(), getClientByFd(fd)->getIp(), getChannel(&split_params[0][1])->getChannelName(), split_params[1]), ch_usrs[i].getFduser());
+                notifyUsers(
+                    RPL_PRIVMSGCHANNEL(
+                        getClientByFd(fd)->getHostname(),
+                        getClientByFd(fd)->getIp(),
+                        channel->getChannelName(),
+                        split_params[1]
+                    ),
+                    channelOperators[i].getFduser()
+                );
             }
         }
     }
     else
     {
-        if (getClientByFd(fd)->getHostname() != getClientByNickname(split_params[0])->getHostname())
+        User *recipient = getClientByNickname(split_params[0]);
+        if (recipient && getClientByFd(fd)->getHostname() != recipient->getHostname())
         {
-            notifyUsers(RPL_PRIVMSGUSER(getClientByFd(fd)->getHostname(), getClientByFd(fd)->getIp(), getClientByNickname(split_params[0])->getNickname(), split_params[1]), getClientByNickname(split_params[0])->getFduser());
+            notifyUsers(
+                RPL_PRIVMSGUSER(
+                    getClientByFd(fd)->getHostname(),
+                    getClientByFd(fd)->getIp(),
+                    recipient->getNickname(),
+                    split_params[1]
+                ),
+                recipient->getFduser()
+            );
         }
     }
 }
