@@ -4,70 +4,98 @@ void Server::PART(std::string message, int fd)
 {
     std::vector<std::string> param;
     std::string reason;
-    bool flag;
 
+    // Validate parameters
     if (!splitPartParams(message, param, reason, fd))
     {
         sendError(461, getClientByFd(fd)->getNickname(), getClientByFd(fd)->getFduser(), " :Not enough parameters\r\n");
         return;
     }
-    for (size_t i = 0; i < param.size(); i++)
+
+    // Iterate over each channel in the parameters
+    for (size_t i = 0; i < param.size(); ++i)
     {
-        flag = false;
-        for (size_t j = 0; j < this->channel.size(); j++)
+        bool channelFound = false;
+
+        for (size_t j = 0; j < this->channel.size(); ++j)
         {
             if (this->channel[j].getChannelName() == param[i])
             {
-                flag = true;
+                channelFound = true;
+
+                // Check if the user is in the channel
                 if (!channel[j].getUserByFd(fd) && !channel[j].getOperatorByFd(fd))
                 {
                     sendErrorToClient(442, getClientByFd(fd)->getNickname(), "#" + param[i], getClientByFd(fd)->getFduser(), " :You're not on that channel\r\n");
                     continue;
                 }
-                if (channel[j].getFindUserByName(getClientByFd(fd)->getNickname())->isChannelFounder())
-                    channel[j].getFindUserByName(getClientByFd(fd)->getNickname())->setChannelFounder(false);
+
+                // Handle channel founder status
+                User *user = channel[j].getFindUserByName(getClientByFd(fd)->getNickname());
+                if (user && user->isChannelFounder())
+                {
+                    user->setChannelFounder(false);
+                }
+
+                // Construct and broadcast the PART message
                 std::stringstream ss;
-                ss << ":" << getClientByFd(fd)->getNickname() << "!~" << getClientByFd(fd)->getUser() << "@localhost PART #" << param[i];
+                ss << ":" << getClientByFd(fd)->getNickname()
+                   << "!~" << getClientByFd(fd)->getUser()
+                   << "@localhost PART #" << param[i];
                 if (!reason.empty())
                     ss << " :" << reason << "\r\n";
                 else
                     ss << "\r\n";
                 channel[j].broadcastMessage(ss.str());
-                if (channel[j].getOperatorByFd(channel[j].getFindUserByName(getClientByFd(fd)->getNickname())->getFduser()))
-                    channel[j].removeOperatorByFd(channel[j].getFindUserByName(getClientByFd(fd)->getNickname())->getFduser());
-                else
-                    channel[j].removeUserByFd(channel[j].getFindUserByName(getClientByFd(fd)->getNickname())->getFduser());
-                if (channel[j].getUserCount() == 0)
-                    channel.erase(channel.begin() + j);
+
+                // Remove user or operator from the channel
+                int userFd = user ? user->getFduser() : -1;
+                if (channel[j].getOperatorByFd(userFd))
+                {
+                    channel[j].removeOperatorByFd(userFd);
+                }
                 else
                 {
-                    if (!channel[j].hasOperators())
-                    {
-                        channel[j].promoteFirstUser();
-                    }
+                    channel[j].removeUserByFd(userFd);
+                }
+
+                // Handle empty channels and promote operators if needed
+                if (channel[j].getUserCount() == 0)
+                {
+                    channel.erase(channel.begin() + j);
+                }
+                else if (!channel[j].hasOperators())
+                {
+                    channel[j].promoteFirstUser();
                 }
             }
         }
-        if (!flag)
+
+        // If the channel wasn't found
+        if (!channelFound)
+        {
             sendErrorToClient(403, getClientByFd(fd)->getNickname(), "#" + param[i], getClientByFd(fd)->getFduser(), " :No such channel\r\n");
+        }
     }
 }
 
+
 int Server::splitPartParams(std::string message, std::vector<std::string> &param, std::string &reason, int fd)
 {
-    std::string str;
-    std::string tmp;
-
+    // Extract the reason and validate parameter size
     reason = extractPartReason(message, param);
     if (param.size() < 2)
     {
         param.clear();
         return 0;
     }
-    param.erase(param.begin());
-    str = param[0];
+
+    // Separate parameters from the first extracted string
+    std::string str = param[1];
     param.clear();
-    for (size_t i = 0; i < str.size(); i++)
+    std::string tmp;
+
+    for (size_t i = 0; i < str.size(); ++i)
     {
         if (str[i] == ',')
         {
@@ -75,19 +103,28 @@ int Server::splitPartParams(std::string message, std::vector<std::string> &param
             tmp.clear();
         }
         else
+        {
             tmp += str[i];
+        }
     }
-    param.push_back(tmp);
-    for (size_t i = 0; i < param.size(); i++)
+    if (!tmp.empty())
+        param.push_back(tmp);
+
+    // Remove empty parameters
+    for (size_t i = 0; i < param.size(); ++i)
     {
         if (param[i].empty())
             param.erase(param.begin() + i--);
     }
-    if (reason[0] == ':')
+
+    // Clean the reason string
+    if (!reason.empty() && reason[0] == ':')
+    {
         reason.erase(reason.begin());
+    }
     else
     {
-        for (size_t i = 0; i < reason.size(); i++)
+        for (size_t i = 0; i < reason.size(); ++i)
         {
             if (reason[i] == ' ')
             {
@@ -96,31 +133,43 @@ int Server::splitPartParams(std::string message, std::vector<std::string> &param
             }
         }
     }
-    for (size_t i = 0; i < param.size(); i++)
+
+    // Validate channels and remove invalid ones
+    for (size_t i = 0; i < param.size(); ++i)
     {
-        if (*(param[i].begin()) == '#')
-            param[i].erase(param[i].begin());
-        else
+        if (param[i].empty() || param[i][0] != '#')
         {
             sendErrorToClient(403, getClientByFd(fd)->getNickname(), param[i], getClientByFd(fd)->getFduser(), " :No such channel\r\n");
             param.erase(param.begin() + i--);
         }
+        else
+        {
+            param[i].erase(param[i].begin()); // Remove '#' prefix
+        }
     }
+
     return 1;
 }
 
 std::string Server::extractPartReason(std::string &message, std::vector<std::string> &param)
 {
-    int count;
-    std::stringstream ss(message);
-    std::string str; 
+    int count = 2;
+    std::istringstream ss(message);
+    std::string str;
     std::string reason;
 
-    count = 2;
-    while (ss >> str && count--)
+    // Extract the first two words from the message
+    while (count > 0 && ss >> str)
+    {
         param.push_back(str);
+        --count;
+    }
+
+    // Validate that exactly two parameters were extracted
     if (param.size() != 2)
         return std::string("");
+
+    // Extract the reason using partReason
     partReason(message, param[1], reason);
 
     return reason;
@@ -128,25 +177,39 @@ std::string Server::extractPartReason(std::string &message, std::vector<std::str
 
 void Server::partReason(std::string message, std::string tofind, std::string &reason)
 {
-    size_t i;
-    std::string str;
+    size_t i = 0;
+    std::string currentWord;
 
-    i = 0;
-    for (; i < message.size(); i++)
+    // Find the target word in the message
+    while (i < message.size())
     {
         if (message[i] != ' ')
         {
-            for (; i < message.size() && message[i] != ' '; i++)
-                str += message[i];
-            if (str == tofind)
+            // Collect characters for the current word
+            currentWord.clear();
+            while (i < message.size() && message[i] != ' ')
+                currentWord += message[i++];
+
+            // Check if the collected word matches the target
+            if (currentWord == tofind)
                 break;
-            else
-                str.clear();
+        }
+        else
+        {
+            ++i;
         }
     }
+
+    // Extract the reason if the target word is found
     if (i < message.size())
+    {
         reason = message.substr(i);
-    i = 0;
-    for (; i < reason.size() && reason[i] == ' '; i++);
-    reason = reason.substr(i);
+    }
+
+    // Remove leading spaces from the reason
+    size_t j = 0;
+    while (j < reason.size() && reason[j] == ' ')
+        ++j;
+
+    reason = reason.substr(j);
 }
