@@ -2,15 +2,14 @@
 
 void Server::PING(std::string &message, int fd)
 {
-    User *user;
-    std::vector<std::string> param;
+    User *user = getClientByFd(fd);
+    std::vector<std::string> params = extractParams(message);
 
-    user = getClientByFd(fd);
-    param = extractParams(message);
-    if (user && param.size() < 2)
+    if (user && params.size() < 2)
     {
         notifyUsers(ERR_NOTENOUGHPARAMETERS(user->getNickname()), fd);
         return;
     }
+
     notifyUsers(RPL_PONG, fd);
 }
