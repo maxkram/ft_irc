@@ -6,10 +6,11 @@ void Server::KICK(std::string message, int fd)
     std::string user; // Ensure `user` is declared before use
     std::string comment = splitKickParams(message, param, user, fd);
     Channel *chan = NULL;
+    User *client = getClientByFd(fd);
 
     if (user.empty())
     {
-        sendError(461, getClientByFd(fd)->getNickname(), getClientByFd(fd)->getFduser(), " :Not enough parameters\r\n");
+        sendError(461, client->getNickname(), client->getFduser(), " :Not enough parameters\r\n");
         return;
     }
 
@@ -18,32 +19,32 @@ void Server::KICK(std::string message, int fd)
         chan = getChannel(param[i]);
         if (!chan)
         {
-            sendErrorToClient(403, getClientByFd(fd)->getNickname(), "#" + param[i], getClientByFd(fd)->getFduser(), " :No such channel\r\n");
+            sendErrorToClient(403, client->getNickname(), "#" + param[i], client->getFduser(), " :No such channel\r\n");
             continue;
         }
 
         if (!chan->getUserByFd(fd) && !chan->getOperatorByFd(fd))
         {
-            sendErrorToClient(442, getClientByFd(fd)->getNickname(), "#" + param[i], getClientByFd(fd)->getFduser(), " :You're not on that channel\r\n");
+            sendErrorToClient(442, client->getNickname(), "#" + param[i], client->getFduser(), " :You're not on that channel\r\n");
             continue;
         }
 
         if (!chan->getOperatorByFd(fd))
         {
-            sendErrorToClient(482, getClientByFd(fd)->getNickname(), "#" + param[i], getClientByFd(fd)->getFduser(), " :You're not channel operator\r\n");
+            sendErrorToClient(482, client->getNickname(), "#" + param[i], client->getFduser(), " :You're not channel operator\r\n");
             continue;
         }
 
         if (!chan->getFindUserByName(user))
         {
-            sendErrorToClient(441, getClientByFd(fd)->getNickname(), "#" + param[i], getClientByFd(fd)->getFduser(), " :They aren't on that channel\r\n");
+            sendErrorToClient(441, client->getNickname(), "#" + param[i], client->getFduser(), " :They aren't on that channel\r\n");
             continue;
         }
 
         // Construct and broadcast the KICK message
         std::stringstream ss;
-        ss << ":" << getClientByFd(fd)->getNickname()
-           << "!~" << getClientByFd(fd)->getUser()
+        ss << ":" << client->getNickname()
+           << "!~" << client->getUser()
            << "@localhost KICK #" << param[i] << " " << user;
 
         if (!comment.empty())

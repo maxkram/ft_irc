@@ -4,7 +4,7 @@ void Server::QUIT(std::string message, int fd)
 {
     std::string reason;
     std::string reply;
-
+    User *client = getClientByFd(fd);
     reason = extractQuitReason(message);
     for (size_t i = 0; i < channel.size(); i++)
     {
@@ -15,7 +15,7 @@ void Server::QUIT(std::string message, int fd)
                 channel.erase(channel.begin() + i);
             else
             {
-                reply = ":" + getClientByFd(fd)->getNickname() + "!~" + getClientByFd(fd)->getUser() + "@localhost QUIT " + reason + "\r\n";
+                reply = ":" + client->getNickname() + "!~" + client->getUser() + "@localhost QUIT " + reason + "\r\n";
                 channel[i].broadcastMessage(reply);
             }
         }
@@ -30,7 +30,7 @@ void Server::QUIT(std::string message, int fd)
                 {
                     channel[i].promoteFirstUser();
                 }
-                reply = ":" + getClientByFd(fd)->getNickname() + "!~" + getClientByFd(fd)->getUser() + "@localhost QUIT " + reason + "\r\n";
+                reply = ":" + client->getNickname() + "!~" + client->getUser() + "@localhost QUIT " + reason + "\r\n";
                 channel[i].broadcastMessage(reply);
             }
         }

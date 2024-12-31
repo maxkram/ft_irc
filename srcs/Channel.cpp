@@ -135,23 +135,23 @@ User *Channel::getFindUserByName(std::string name) {
 }
 
 int Channel::isInviteOnly() {
-    return this->invitOnly;
+    return invitOnly;
 }
 
 int Channel::isTopicSet() {
-    return this->topic;
+    return topic;
 }
 
 int Channel::hasPassword() {
-    return this->key;
+    return key;
 }
 
 int Channel::getUserLimit() {
-    return this->limit;
+    return limit;
 }
 
 bool Channel::isTopicRestricted() const {
-    return (this->restrictTopic);
+    return restrictTopic;
 }
 
 bool Channel::isModeEnabled(size_t i) {
@@ -171,11 +171,11 @@ std::vector<User *> Channel::getUserPointers()
 }
 
 void Channel::setChannelName(std::string name) {
-    this->channelName = name;
+    channelName = name;
 }
 
 void Channel::setTopic(std::string topic) {
-    this->topicName = topic;
+    topicName = topic;
 }
 
 void Channel::setPassword(std::string password) {
@@ -187,7 +187,7 @@ void Channel::setInviteOnly(int invitOnly) {
 }
 
 void Channel::setTopicRestriction(bool restriction) {
-    this->restrictTopic = restriction;
+    restrictTopic = restriction;
 }
 
 void Channel::setTopicFlag(int topic) {

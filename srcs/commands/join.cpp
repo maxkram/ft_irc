@@ -3,18 +3,18 @@
 void Server::JOIN(std::string message, int fd)
 {
     std::vector<std::pair<std::string, std::string> > param;
-
+    User *client = getClientByFd(fd);
     // Split the JOIN parameters
     if (!splitJoinParameters(param, message, fd))
     {
-        sendError(461, getClientByFd(fd)->getNickname(), getClientByFd(fd)->getFduser(), " :Not enough parameters\r\n");
+        sendError(461, client->getNickname(), client->getFduser(), " :Not enough parameters\r\n");
         return;
     }
 
     // Check if the user is attempting to join too many channels
     if (param.size() > 20)
     {
-        sendError(407, getClientByFd(fd)->getNickname(), getClientByFd(fd)->getFduser(), " :Too many channels\r\n");
+        sendError(407, client->getNickname(), client->getFduser(), " :Too many channels\r\n");
         return;
     }
 

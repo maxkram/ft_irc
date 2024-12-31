@@ -4,11 +4,11 @@ void Server::PART(std::string message, int fd)
 {
     std::vector<std::string> param;
     std::string reason;
-
+    User *client = getClientByFd(fd);
     // Validate parameters
     if (!splitPartParams(message, param, reason, fd))
     {
-        sendError(461, getClientByFd(fd)->getNickname(), getClientByFd(fd)->getFduser(), " :Not enough parameters\r\n");
+        sendError(461, client->getNickname(), client->getFduser(), " :Not enough parameters\r\n");
         return;
     }
 
@@ -26,12 +26,12 @@ void Server::PART(std::string message, int fd)
                 // Check if the user is in the channel
                 if (!channel[j].getUserByFd(fd) && !channel[j].getOperatorByFd(fd))
                 {
-                    sendErrorToClient(442, getClientByFd(fd)->getNickname(), "#" + param[i], getClientByFd(fd)->getFduser(), " :You're not on that channel\r\n");
+                    sendErrorToClient(442, client->getNickname(), "#" + param[i], client->getFduser(), " :You're not on that channel\r\n");
                     continue;
                 }
 
                 // Handle channel founder status
-                User *user = channel[j].getFindUserByName(getClientByFd(fd)->getNickname());
+                User *user = channel[j].getFindUserByName(client->getNickname());
                 if (user && user->isChannelFounder())
                 {
                     user->setChannelFounder(false);
@@ -39,8 +39,8 @@ void Server::PART(std::string message, int fd)
 
                 // Construct and broadcast the PART message
                 std::stringstream ss;
-                ss << ":" << getClientByFd(fd)->getNickname()
-                   << "!~" << getClientByFd(fd)->getUser()
+                ss << ":" << client->getNickname()
+                   << "!~" << client->getUser()
                    << "@localhost PART #" << param[i];
                 if (!reason.empty())
                     ss << " :" << reason << "\r\n";
@@ -74,7 +74,7 @@ void Server::PART(std::string message, int fd)
         // If the channel wasn't found
         if (!channelFound)
         {
-            sendErrorToClient(403, getClientByFd(fd)->getNickname(), "#" + param[i], getClientByFd(fd)->getFduser(), " :No such channel\r\n");
+            sendErrorToClient(403, client->getNickname(), "#" + param[i], client->getFduser(), " :No such channel\r\n");
         }
     }
 }
