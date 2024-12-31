@@ -80,11 +80,10 @@ void Server::checkPollEvents()
 void Server::acceptNewClient()
 {
     User client;
-    int cli_sock;
     struct sockaddr_in client_addr;
     socklen_t socklen = sizeof(client_addr);
 
-    cli_sock = accept(serverSocketFd, (sockaddr *)&client_addr, &socklen);
+    int cli_sock = accept(serverSocketFd, (sockaddr *)&client_addr, &socklen);
     if (cli_sock == -1)
     {
         std::cerr << "Error: Server::acceptNewClient(): accept() failed." << std::endl;
@@ -113,15 +112,12 @@ void Server::acceptNewClient()
 
 void Server::handleData(int fd)
 {
-    User *client;
+    User *client = getClientByFd(fd);
     char buf[1024];
-    int bytes;
-    std::vector<std::string> command;
 
-    client = getClientByFd(fd);
     memset(buf, 0, sizeof(buf));
 
-    bytes = recv(fd, buf, sizeof(buf) - 1, 0);
+    int bytes = recv(fd, buf, sizeof(buf) - 1, 0);
     if (bytes <= 0)
     {
         std::cout << "FD[" << fd << "] disconnected" << std::endl;
@@ -137,15 +133,15 @@ void Server::handleData(int fd)
         if (client->getBuffer().find_first_of("\r\n") == std::string::npos)
             return;
 
-        command = splitBuffer(client->getBuffer());
+        std::vector<std::string> command = splitBuffer(client->getBuffer());
         for (size_t i = 0; i < command.size(); i++)
         {
             std::cout << RED << LARROW << RESET << command[i] << std::endl;
             this->executeCommand(command[i], fd);
         }
 
-        if (getClientByFd(fd))
-            getClientByFd(fd)->clearBuffer();
+        if (client)
+            client->clearBuffer();
     }
 }
 
