@@ -150,4 +150,5 @@ public:
     std::string	    getUserTarget(int fd);
     int	        validatePrivmsgSyntax(std::string split_mess[3], std::string split_params[3]);
     int	        handlePrivmsg(std::string split_message[3], std::string split_params[3], int fd);
+    bool        isChannel(const std::string &target);
 };

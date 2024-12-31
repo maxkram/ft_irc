@@ -48,7 +48,7 @@ int Server::handlePrivmsg(std::string split_message[3], std::string split_params
     }
 
     std::string tmp;
-    if (split_params[0][0] == '&' || split_params[0][0] == '#')
+    if (isChannel(split_params[0]))
     {
         std::string channelName = split_params[0].substr(1);
         tmp = getChannelTarget(channelName);
@@ -84,7 +84,7 @@ void Server::PRIVMSG(std::string &message, int fd)
     if (handlePrivmsg(split_message, split_params, fd))
         return;
 
-    if (split_params[0][0] == '&' || split_params[0][0] == '#')
+    if (isChannel(split_params[0]))
     {
         std::string channelName = split_params[0].substr(1);
         Channel *channel = getChannel(channelName.c_str());
@@ -145,4 +145,8 @@ void Server::PRIVMSG(std::string &message, int fd)
             );
         }
     }
+}
+
+bool Server::isChannel(const std::string &target) {
+    return !target.empty() && (target[0] == '&' || target[0] == '#');
 }
