@@ -48,6 +48,11 @@ int Server::splitJoinParameters(std::vector<std::pair<std::string, std::string> 
     std::istringstream ss(message);
     std::string line, channel, key, str;
 
+    if (message.empty()) {
+        param.clear();
+        return 0; // Early exit for invalid input
+    }
+
     // Split the input message by spaces
     while (std::getline(ss, line, ' '))
         vec.push_back(line);
@@ -70,7 +75,7 @@ int Server::splitJoinParameters(std::vector<std::pair<std::string, std::string> 
     {
         if (channel[i] == ',')
         {
-            param.push_back(std::make_pair(str, ""));
+            param.push_back(std::pair<std::string, std::string>(str, ""));
             str.clear();
         }
         else
@@ -78,7 +83,7 @@ int Server::splitJoinParameters(std::vector<std::pair<std::string, std::string> 
             str += channel[i];
         }
     }
-    param.push_back(std::make_pair(str, ""));
+    param.push_back(std::pair<std::string, std::string>(str, ""));
 
     // Split keys by ',' and associate with channels
     if (!key.empty())
