@@ -7,16 +7,16 @@ void	Server::USER(std::string &message, int fd)
 
 	if (user && param.size() < 5)
 	{
-		notifyUsers(ERR_NOTENOUGHPARAMETERS(user->getNickname()), fd);
+		notifyUsers(ERR_MISSING_PARAMETERS(user->getNickname()), fd);
 		return;
 	}
 	if (!user || !user->isRegistered())
 	{
-		notifyUsers(ERR_NOTREGISTERED(std::string("*")), fd);
+		notifyUsers(ERR_USER_NOT_REGISTERED(std::string("*")), fd);
 	}
 	if (!user->getUser().empty())
 	{
-		notifyUsers(ERR_ALREADYREGISTERED(user->getNickname()), fd);
+		notifyUsers(ERR_ALREADY_REGISTERED(user->getNickname()), fd);
 		return;
 	}
 	if (user)
@@ -31,6 +31,6 @@ void	Server::USER(std::string &message, int fd)
 		!user->isConnected())
 	{
 		user->setConnected(true);
-		notifyUsers(RPL_WELCOME(user->getNickname()), fd);
+		notifyUsers(RPL_SERVER_WELCOME(user->getNickname()), fd);
 	}
 }

@@ -7,7 +7,7 @@ void Server::INVITE(std::string message, int fd)
 
     if (param.size() < 2)
     {
-        notifyUsers(ERR_NOTENOUGHPARAMETERS(user->getNickname()), fd);
+        notifyUsers(ERR_MISSING_PARAMETERS(user->getNickname()), fd);
         return;
     }
 

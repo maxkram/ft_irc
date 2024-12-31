@@ -7,7 +7,7 @@ void Server::PING(std::string &message, int fd)
 
     if (user && params.size() < 2)
     {
-        notifyUsers(ERR_NOTENOUGHPARAMETERS(user->getNickname()), fd);
+        notifyUsers(ERR_MISSING_PARAMETERS(user->getNickname()), fd);
         return;
     }
 

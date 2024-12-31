@@ -182,5 +182,5 @@ void Server::executeCommand(std::string &message, int fd)
             notifyUsers(ERR_UNKNOWNCOMMAND(getClientByFd(fd)->getNickname(), commandParts[1]), fd);
     }
     else if (!isRegistered(fd))
-        notifyUsers(ERR_NOTREGISTERED(std::string("*")), fd);
+        notifyUsers(ERR_USER_NOT_REGISTERED(std::string("*")), fd);
 }

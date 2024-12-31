@@ -26,13 +26,13 @@ int Server::handlePrivmsg(std::string split_message[3], std::string split_params
         case 0:
             break;
         case 1:
-            notifyUsers(ERR_NORECIPIENT(split_message[0]), fd);
+            notifyUsers(ERR_MESSAGE_NO_RECIPIENT(split_message[0]), fd);
             return -1;
         case 2:
-            notifyUsers(ERR_NOTEXTTOSEND(), fd);
+            notifyUsers(ERR_MESSAGE_NO_TEXT(), fd);
             return -1;
         case 3:
-            notifyUsers(ERR_NOTENOUGHPARAMETERS(getClientByFd(fd)->getNickname()), fd);
+            notifyUsers(ERR_MISSING_PARAMETERS(getClientByFd(fd)->getNickname()), fd);
             return -1;
         case 4:
             notifyUsers(ERR_NOTOPLEVEL(split_params[0]), fd);
@@ -54,7 +54,7 @@ int Server::handlePrivmsg(std::string split_message[3], std::string split_params
         tmp = getChannelTarget(channelName);
         if (tmp.empty() || getChannel(channelName.c_str()) == NULL)
         {
-            notifyUsers(ERR_NOSUCHNICK(split_params[0]), fd);
+            notifyUsers(ERR_USER_NOT_FOUND(split_params[0]), fd);
             return 1;
         }
     }
@@ -63,7 +63,7 @@ int Server::handlePrivmsg(std::string split_message[3], std::string split_params
         tmp = getUserTarget(fd);
         if (tmp.empty() || getClientByFd(fd) == NULL || getClientByNickname(split_params[0]) == NULL)
         {
-            notifyUsers(ERR_NOSUCHNICK(tmp), fd);
+            notifyUsers(ERR_USER_NOT_FOUND(tmp), fd);
             return 1;
         }
     }

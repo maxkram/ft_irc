@@ -18,7 +18,7 @@ void Server::MODE_CHANNEL(std::string &message, int fd)
         message = message.substr(nonspace);
     else
     {
-        notifyUsers(ERR_NOTENOUGHPARAMETERS(user->getNickname()), fd);
+        notifyUsers(ERR_MISSING_PARAMETERS(user->getNickname()), fd);
         return;
     }
 
@@ -30,7 +30,7 @@ void Server::MODE_CHANNEL(std::string &message, int fd)
     chan = getChannel(channelname.substr(1));
     if (channelname[0] != '#' || !chan)
     {
-        notifyUsers(ERR_NOSUCHCHANNEL(user->getUser(), channelname), fd);
+        notifyUsers(ERR_CHANNEL_NOT_FOUND(user->getUser(), channelname), fd);
         return;
     }
     else if (!chan->getUserByFd(fd) && !chan->getOperatorByFd(fd))
@@ -46,7 +46,7 @@ void Server::MODE_CHANNEL(std::string &message, int fd)
     }
     else if (!chan->getOperatorByFd(fd))
     {
-        notifyUsers(ERR_NOTOPERATOR(user->getNickname(), chan->getChannelName()), fd);
+        notifyUsers(ERR_CHANNEL_NOT_OPERATOR(user->getNickname(), chan->getChannelName()), fd);
         return;
     }
 
@@ -78,7 +78,7 @@ void Server::MODE_CHANNEL(std::string &message, int fd)
                     ssmode << setUserLimit(chan, addminus, ssmode.str(), paramsplit, arg, pos, fd);
                     break;
                 default:
-                    notifyUsers(ERR_UNKNOWNMODE(user->getNickname(), chan->getChannelName(), modestring[i]), fd);
+                    notifyUsers(ERR_UNKNOWN_MODE(user->getNickname(), chan->getChannelName(), modestring[i]), fd);
                     break;
             }
         }
@@ -272,7 +272,7 @@ std::string Server::operatorPrivilege(Channel *channel, char addminus, std::stri
     // Validate if the user is in the channel
     if (!channel->isUserInChannel(user))
     {
-        notifyUsers(ERR_NOSUCHNICKCHAN(channel->getChannelName(), user), fd);
+        notifyUsers(ERR_NO_SUCH_NICK_CHANNEL(channel->getChannelName(), user), fd);
         return str;
     }
 

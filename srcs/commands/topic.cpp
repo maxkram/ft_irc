@@ -23,7 +23,7 @@ void Server::TOPIC(std::string message, int fd)
 	
 	if (param.size() < 2)
 	{
-		notifyUsers(ERR_NOTENOUGHPARAMETERS(user->getUser()), fd);
+		notifyUsers(ERR_MISSING_PARAMETERS(user->getUser()), fd);
 		return;
 	}
 	
@@ -54,7 +54,7 @@ void Server::TOPIC(std::string message, int fd)
 	// Check topic restriction and user privileges
     if (channelPtr->isTopicRestricted() && !channelPtr->isUserOperator(user->getNickname()))
     {
-        notifyUsers(ERR_NOTOPERATOR(user->getNickname(), channame), fd);
+        notifyUsers(ERR_CHANNEL_NOT_OPERATOR(user->getNickname(), channame), fd);
         return;
     }
 	

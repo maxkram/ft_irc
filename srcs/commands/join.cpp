@@ -173,9 +173,9 @@ void Server::addClientToExistChannel(std::vector<std::pair<std::string, std::str
     channel[j].addRegularUser(*user);
 
     // Notify the user and others in the channel
-    std::string joinMessage = RPL_JOIN(user->getHostname(), user->getIp(), param[i].first);
-    std::string nameReply = RPL_NAMREPLY(user->getNickname(), channel[j].getChannelName(), channel[j].getUserList());
-    std::string endOfNames = RPL_ENDOFNAMES(user->getNickname(), channel[j].getChannelName());
+    std::string joinMessage = RPL_CHANNEL_JOIN(user->getHostname(), user->getIp(), param[i].first);
+    std::string nameReply = RPL_CHANNEL_NAME_REPLY(user->getNickname(), channel[j].getChannelName(), channel[j].getUserList());
+    std::string endOfNames = RPL_CHANNEL_NAME_END(user->getNickname(), channel[j].getChannelName());
 
     if (channel[j].getTopicName().empty())
     {
@@ -216,9 +216,9 @@ void Server::createAndAddToNewChannel(std::vector<std::pair<std::string, std::st
 
     // Notify the user about the new channel creation and membership
     notifyUsers(
-        RPL_JOIN(user->getHostname(), user->getIp(), newChannel.getChannelName()) +
-        RPL_NAMREPLY(user->getNickname(), newChannel.getChannelName(), newChannel.getUserList()) +
-        RPL_ENDOFNAMES(user->getNickname(), newChannel.getChannelName()),
+        RPL_CHANNEL_JOIN(user->getHostname(), user->getIp(), newChannel.getChannelName()) +
+        RPL_CHANNEL_NAME_REPLY(user->getNickname(), newChannel.getChannelName(), newChannel.getUserList()) +
+        RPL_CHANNEL_NAME_END(user->getNickname(), newChannel.getChannelName()),
         fd
     );
 }

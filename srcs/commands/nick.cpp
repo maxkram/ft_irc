@@ -16,21 +16,21 @@ void Server::NICK(std::string message, int fd)
     message = std::string(it + 5, message.end());
     if (message.empty())
     {
-        notifyUsers(ERR_NOTENOUGHPARAMETERS(std::string("*")), fd);
+        notifyUsers(ERR_MISSING_PARAMETERS(std::string("*")), fd);
         return;
     }
     // Check if the nickname is already taken
     if (isNicknameTaken(message) && user->getNickname() != message)
     {
         if (user->getNickname().empty())
-            notifyUsers(ERR_NICKNAMEINUSE(std::string(message), std::string(message)), fd);
+            notifyUsers(ERR_USER_NICKNAME_IN_USE(std::string(message), std::string(message)), fd);
         else
-            notifyUsers(ERR_NICKNAMEINUSE(user->getNickname(), std::string(message)), fd);
+            notifyUsers(ERR_USER_NICKNAME_IN_USE(user->getNickname(), std::string(message)), fd);
         return;
     }
     if (!isValidNickname(message))
     {
-        notifyUsers(ERR_ERRONEUSNICKNAME(std::string(message)), fd);
+        notifyUsers(ERR_INVALID_NICKNAME(std::string(message)), fd);
         return;
     }
 
@@ -44,21 +44,21 @@ void Server::NICK(std::string message, int fd)
             if (old == "*" && !user->getUser().empty())
             {
                 user->setConnected(true);
-                notifyUsers(RPL_WELCOME(user->getNickname()), fd);
-                notifyUsers(RPL_CHANGENICK(user->getNickname(), message), fd);
+                notifyUsers(RPL_SERVER_WELCOME(user->getNickname()), fd);
+                notifyUsers(RPL_USER_NICK_CHANGE(user->getNickname(), message), fd);
             }
             else
-                notifyUsers(RPL_CHANGENICK(old, message), fd);
+                notifyUsers(RPL_USER_NICK_CHANGE(old, message), fd);
             return;
         }
     }
     else
-        notifyUsers(ERR_NOTREGISTERED(message), fd);
+        notifyUsers(ERR_USER_NOT_REGISTERED(message), fd);
     
     if (user && user->isRegistered() && !user->getUser().empty() && !user->getNickname().empty() && user->getNickname() != "*" && !user->isConnected())
     {
         user->setConnected(true);
-        notifyUsers(RPL_WELCOME(user->getNickname()), fd);
+        notifyUsers(RPL_SERVER_WELCOME(user->getNickname()), fd);
     }
 }
 

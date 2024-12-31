@@ -18,7 +18,7 @@ void Server::PASS(std::string message, int fd)
 
     if (pass.empty())
     {
-        notifyUsers(ERR_NOTENOUGHPARAMETERS(std::string("*")), fd);
+        notifyUsers(ERR_MISSING_PARAMETERS(std::string("*")), fd);
     }
     else if (!user->isRegistered())
     {
@@ -28,11 +28,11 @@ void Server::PASS(std::string message, int fd)
         }
         else
         {
-            notifyUsers(ERR_PASSWORDINCORECT(std::string("*")), fd);
+            notifyUsers(ERR_PASSWORD_INCORRECT(std::string("*")), fd);
         }
     }
     else
     {
-        notifyUsers(ERR_ALREADYREGISTERED(user->getNickname()), fd);
+        notifyUsers(ERR_ALREADY_REGISTERED(user->getNickname()), fd);
     }
 }
