@@ -72,6 +72,7 @@ int Server::handlePrivmsg(std::string split_message[3], std::string split_params
 
 void Server::PRIVMSG(std::string &message, int fd)
 {
+    User *client = getClientByFd(fd);
     std::string split_message[3] = {std::string(), std::string(), std::string()};
     if (splitMessage(message, split_message))
         return;
@@ -88,21 +89,21 @@ void Server::PRIVMSG(std::string &message, int fd)
         std::string channelName = split_params[0].substr(1);
         Channel *channel = getChannel(channelName.c_str());
 
-        if (!channel || !channel->isUserInChannel(getClientByFd(fd)->getNickname()))
+        if (!channel || !channel->isUserInChannel(client->getNickname()))
         {
-            sendErrorToClient(442, getClientByFd(fd)->getNickname(), channelName, getClientByFd(fd)->getFduser(), " :You're not on that channel\r\n");
+            sendErrorToClient(442, client->getNickname(), channelName, client->getFduser(), " :You're not on that channel\r\n");
             return;
         }
 
         std::vector<User> channelUsers = channel->getUsers();
         for (size_t i = 0; i < channelUsers.size(); ++i)
         {
-            if (getClientByFd(fd)->getHostname() != channelUsers[i].getHostname())
+            if (client->getHostname() != channelUsers[i].getHostname())
             {
                 notifyUsers(
                     RPL_PRIVMSGCHANNEL(
-                        getClientByFd(fd)->getHostname(),
-                        getClientByFd(fd)->getIp(),
+                        client->getHostname(),
+                        client->getIp(),
                         channel->getChannelName(),
                         split_params[1]
                     ),
@@ -114,12 +115,12 @@ void Server::PRIVMSG(std::string &message, int fd)
         std::vector<User> channelOperators = channel->getOperators();
         for (size_t i = 0; i < channelOperators.size(); ++i)
         {
-            if (getClientByFd(fd)->getHostname() != channelOperators[i].getHostname())
+            if (client->getHostname() != channelOperators[i].getHostname())
             {
                 notifyUsers(
                     RPL_PRIVMSGCHANNEL(
-                        getClientByFd(fd)->getHostname(),
-                        getClientByFd(fd)->getIp(),
+                        client->getHostname(),
+                        client->getIp(),
                         channel->getChannelName(),
                         split_params[1]
                     ),
@@ -131,12 +132,12 @@ void Server::PRIVMSG(std::string &message, int fd)
     else
     {
         User *recipient = getClientByNickname(split_params[0]);
-        if (recipient && getClientByFd(fd)->getHostname() != recipient->getHostname())
+        if (recipient && client->getHostname() != recipient->getHostname())
         {
             notifyUsers(
                 RPL_PRIVMSGUSER(
-                    getClientByFd(fd)->getHostname(),
-                    getClientByFd(fd)->getIp(),
+                    client->getHostname(),
+                    client->getIp(),
                     recipient->getNickname(),
                     split_params[1]
                 ),
